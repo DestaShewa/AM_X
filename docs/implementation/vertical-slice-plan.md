@@ -169,7 +169,7 @@ The slices below are ordered by dependencies. They form the recommended implemen
 
 **ID:** `VS-002`
 **Priority:** P1
-**Status:** Implemented and locally verified; broader RBAC remains in VS-003.
+**Status:** Implemented and locally verified; the approved MVP authorization policy is enforced in VS-003.
 
 **Goal:** Allow authorized staff to sign in securely.
 
@@ -195,7 +195,7 @@ The slices below are ordered by dependencies. They form the recommended implemen
 * Passwords and session secrets are never returned to the client or written to logs.
 * Sessions are PostgreSQL-backed, idle for no more than 30 minutes, and absolutely limited to 12 hours.
 
-**Scope boundary:** This slice provides authentication and the initial Administrator role only. The role-permission matrix, general account/role management, and authorization for business operations remain in VS-003 and are not inferred from the proposed matrix.
+**Scope boundary:** This slice provides authentication and the initial Administrator role only. Authorization enforcement is handled in VS-003; general account/role management and additional roles remain deferred.
 
 **Verification:** Applied the authentication migration to the local PostgreSQL database; verified first-Administrator CLI provisioning, browser login, authenticated session retrieval, logout, and redirect; tested invalid credentials, inactive accounts, CSRF, origin restrictions, rate limiting, session rotation, logout invalidation, deactivation, and absolute expiry. API/web typechecks, lint, tests, and production builds passed. The temporary verification Administrator was removed.
 
@@ -205,29 +205,30 @@ The slices below are ordered by dependencies. They form the recommended implemen
 
 **ID:** `VS-003`
 **Priority:** P1
+**Status:** Implemented and locally verified; covers the approved MVP Administrator-only policy.
 
-**Goal:** Restrict staff operations according to approved permissions.
+**Goal:** Restrict staff/admin operations to active Administrator accounts while retaining public visitor access.
 
 **Includes**
 
-* Role and permission definitions.
-* Authorization middleware.
-* Staff account management foundations.
-* Protected admin routes.
+* Server-side Administrator authorization middleware using the active role loaded from the database.
+* Administrator-only access to the staff session endpoint used by the admin UI.
+* A reusable authorization guard for protected API routes; apply it as each staff-operation route is introduced.
+* Admin UI handling for unauthenticated and authenticated-but-forbidden sessions.
 * Unauthorized and forbidden responses.
-* Tests for allowed and denied actions.
+* Tests for unauthenticated, active Administrator, inactive, and active non-Administrator access.
 
 **Acceptance criteria**
 
-* Unauthenticated requests to protected endpoints are rejected.
-* Authenticated staff without the required permission receive a forbidden response.
-* Permissions are checked on the backend, not just hidden in the UI.
-* Sensitive actions require explicit permissions.
-* Role changes take effect according to the approved session policy.
+* Public visitor endpoints remain accessible without an account.
+* Unauthenticated requests to protected staff endpoints receive `401`.
+* Only an active user whose database role is `Administrator` can access staff/admin endpoints.
+* Authenticated users in any other role receive `403`; authorization is enforced by the backend, not only by the UI.
+* Role changes take effect on the next protected request because the current role is reloaded from the database.
 
 **Dependencies:** VS-002.
 
-**Required decision:** Finalize the role matrix for Admin, Operations Staff, Finance Staff, and any optional Auditor role.
+**Decision recorded:** The project owner approved the MVP-only policy: Visitors remain public, and active Administrators are the only staff role. Additional roles and fine-grained exceptions are deferred. The multi-role matrix in the proposed API baseline remains unapproved.
 
 ### Slice 4 — Public Package Listing
 

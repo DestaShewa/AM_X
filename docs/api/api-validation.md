@@ -331,7 +331,7 @@ Error responses must not expose passwords, session tokens, database details, sec
 
 The following items require explicit business-owner approval or a documented technical decision:
 
-1. Staff role matrix and whether users can hold multiple roles.
+1. Additional staff roles and whether users can hold multiple roles. The MVP-only Visitor/Administrator policy is recorded in `docs/requirement/role-permissions.md`.
 2. Quotation acceptance method and customer confirmation evidence.
 3. Conditions for confirming a booking.
 4. Deposit, cancellation, refund, and adjustment policies.

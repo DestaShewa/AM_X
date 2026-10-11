@@ -31,6 +31,10 @@ export default function AdminSession() {
           router.replace("/login");
           return;
         }
+        if (sessionResponse.status === 403) {
+          router.replace("/");
+          return;
+        }
         if (!sessionResponse.ok) {
           throw new Error("Unable to verify the administrator session.");
         }

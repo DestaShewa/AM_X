@@ -51,7 +51,7 @@ The baseline must not be approved until the following are resolved:
 * Quotation acceptance method and secure customer confirmation.
 * Booking confirmation and cancellation rules.
 * Deposit, refund, and financial adjustment policies.
-* Final role-permission matrix and sensitive-action authorization.
+* Additional staff-role matrices and fine-grained sensitive-action authorization. The MVP-only Visitor/Administrator policy has been approved and implemented in VS-003; this does not approve the broader proposed matrix.
 * Follow-up relationships and review eligibility.
 * Quotation and booking data snapshots.
 * Duplicate request prevention and concurrent updates.
@@ -181,7 +181,7 @@ No validation check is considered passed without recorded evidence. The API must
 
 The following decisions must be resolved before final approval:
 
-1. Staff role matrix and single-role versus multiple-role assignment.
+1. Additional staff roles and single-role versus multiple-role assignment. The MVP-only Visitor/Administrator policy is recorded in `docs/requirement/role-permissions.md`.
 2. Customer quotation acceptance method.
 3. Booking confirmation conditions.
 4. Deposit, cancellation, refund, and adjustment policies.

@@ -95,7 +95,19 @@ function sendUnauthorized(response: Response): void {
   });
 }
 
-export function createRequireAuthentication(repository: AuthRepository): RequestHandler {
+function sendForbidden(response: Response): void {
+  response.status(403).json({
+    error: {
+      code: "ADMINISTRATOR_REQUIRED",
+      message: "Administrator access required",
+    },
+  });
+}
+
+function createRequireRole(
+  repository: AuthRepository,
+  requiredRole?: string,
+): RequestHandler {
   return async (request, response, next) => {
     const user = request.session.user;
     const authenticatedAt = request.session.authenticatedAt;
@@ -120,8 +132,24 @@ export function createRequireAuthentication(repository: AuthRepository): Request
     }
 
     request.session.user = activeUser;
+    if (requiredRole && activeUser.role !== requiredRole) {
+      sendForbidden(response);
+      return;
+    }
     next();
   };
+}
+
+export function createRequireAuthentication(
+  repository: AuthRepository,
+): RequestHandler {
+  return createRequireRole(repository);
+}
+
+export function createRequireAdministrator(
+  repository: AuthRepository,
+): RequestHandler {
+  return createRequireRole(repository, "Administrator");
 }
 
 export function createAuthRouter({
@@ -134,7 +162,7 @@ export function createAuthRouter({
   production: boolean;
 }): Router {
   const router = Router();
-  const requireAuthentication = createRequireAuthentication(repository);
+  const requireAdministrator = createRequireAdministrator(repository);
   const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 5,
@@ -224,14 +252,14 @@ export function createAuthRouter({
     });
   });
 
-  router.get("/me", requireAuthentication, (request, response) => {
+  router.get("/me", requireAdministrator, (request, response) => {
     response.setHeader("Cache-Control", "no-store");
     response.json({ user: request.session.user });
   });
 
   router.post(
     "/logout",
-    requireAuthentication,
+    createRequireAuthentication(repository),
     requireCsrf,
     async (request, response) => {
       const userId = request.session.user?.id;

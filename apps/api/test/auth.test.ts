@@ -183,6 +183,18 @@ test("login rotates the session, exposes the user profile, and logout invalidate
   });
 });
 
+test("unauthenticated users cannot access the admin session endpoint", async () => {
+  await withAuthServer(createRepository(), async (baseUrl) => {
+    const response = await fetch(`${baseUrl}/me`, {
+      headers: { Origin: frontendOrigin },
+    });
+    assert.equal(response.status, 401);
+    assert.deepEqual(await response.json(), {
+      error: { code: "AUTH_REQUIRED", message: "Authentication required" },
+    });
+  });
+});
+
 test("an existing session is rejected immediately after account deactivation", async () => {
   const passwordHash = await argon2.hash(passwordValue, {
     type: argon2.argon2id,
@@ -220,6 +232,49 @@ test("an existing session is rejected immediately after account deactivation", a
       headers: { Cookie: loginCookie, Origin: frontendOrigin },
     });
     assert.equal(response.status, 401);
+  });
+});
+
+test("role changes are enforced on the next request to the admin session endpoint", async () => {
+  const passwordHash = await argon2.hash(passwordValue, {
+    type: argon2.argon2id,
+  });
+  let activeRole = "Administrator";
+  const repository = createRepository();
+  repository.findByEmail = async () => ({
+    id: "e3fe2a41-f6b0-49c8-a69f-f5c570ce28ed",
+    fullName: "AMX Administrator",
+    email: "admin@example.test",
+    role: "Administrator",
+    permissions: {},
+    passwordHash,
+    status: "ACTIVE",
+  });
+  repository.findActiveById = async () => ({
+    id: "e3fe2a41-f6b0-49c8-a69f-f5c570ce28ed",
+    fullName: "AMX Administrator",
+    email: "admin@example.test",
+    role: activeRole,
+    permissions: {},
+  });
+
+  await withAuthServer(repository, async (baseUrl) => {
+    const csrf = await getCsrfToken(baseUrl);
+    const loginResponse = await login(baseUrl, csrf.cookie, csrf.token);
+    assert.equal(loginResponse.status, 200);
+    const sessionCookie = cookieFrom(loginResponse);
+    activeRole = "Operations";
+
+    const response = await fetch(`${baseUrl}/me`, {
+      headers: { Cookie: sessionCookie, Origin: frontendOrigin },
+    });
+    assert.equal(response.status, 403);
+    assert.deepEqual(await response.json(), {
+      error: {
+        code: "ADMINISTRATOR_REQUIRED",
+        message: "Administrator access required",
+      },
+    });
   });
 });
 

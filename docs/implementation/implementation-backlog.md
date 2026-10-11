@@ -58,7 +58,7 @@ Every implementation task must reference the relevant requirement IDs, define ac
 
 **Language decision:** The project owner selected TypeScript before starting the next slice. VS-001 application source and tests have been migrated to TypeScript and are type-checked; application JavaScript is not the implementation standard.
 
-**VS-002 decisions:** The project owner approved PostgreSQL-backed sessions (30-minute inactivity expiry, 12-hour absolute lifetime), `ACTIVE`/`INACTIVE` account states, and one-time interactive CLI provisioning for the first Administrator. These are limited to the authentication slice; broader RBAC remains pending.
+**VS-002 decisions:** The project owner approved PostgreSQL-backed sessions (30-minute inactivity expiry, 12-hour absolute lifetime), `ACTIVE`/`INACTIVE` account states, and one-time interactive CLI provisioning for the first Administrator. VS-003 separately records the approved MVP Administrator-only access policy; additional roles and fine-grained permissions remain deferred.
 
 ### Epic 3 — Authentication and Permissions
 
@@ -67,12 +67,12 @@ Every implementation task must reference the relevant requirement IDs, define ac
 * [x] Implement staff login and logout.
 * [x] Implement secure server-managed sessions.
 * [x] Implement password hashing and login rate limiting.
-* [ ] Implement role-based access control.
-* [x] Add one-time CLI provisioning for the initial Administrator; ongoing staff and role management remains in VS-003.
-* [x] Add the sign-in UI and a minimal authenticated-session page; protected business operations remain in VS-003.
+* [x] Enforce the approved MVP policy: active Administrators only for staff/admin endpoints; visitors remain public.
+* [x] Add one-time CLI provisioning for the initial Administrator; general staff and role management remains deferred.
+* [x] Add the sign-in UI and a minimal authenticated-session page, protected by the approved Administrator-only policy.
 * [x] Add authentication and session tests.
 
-**Acceptance criteria:** VS-002 authenticates active staff and protects its session endpoint. VS-003 must still define permissions and protect business operations before those operations are implemented.
+**Acceptance criteria:** VS-002 authenticates accounts; VS-003 restricts the admin session endpoint to active Administrators and provides the guard pattern required for subsequent protected operations. The detailed multi-role matrix remains out of scope.
 
 ### Epic 4 — Public Website and Experience Packages
 
