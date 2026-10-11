@@ -2,7 +2,7 @@
 
 **File:** `docs/database/table-specification.md`
 **Phase:** 6 — Database & API Design
-**Status:** Draft for Validation
+**Status:** Package contract approved for VS-004 MVP implementation; remaining database baseline remains pending validation.
 
 ## 1. Purpose
 
@@ -84,6 +84,8 @@ Create an index on `expire` for session cleanup. Sessions expire after 30 minute
 
 **Rule:** Do not assume phone numbers are globally unique; family members may share a number.
 
+**VS-006 implementation decision (2026-10-11):** The public form creates a separate customer for each unique idempotent inquiry submission. Public submission does not match or merge customers by phone.
+
 ## 6. `providers`
 
 | Column                  | Type         | Constraints            |
@@ -104,10 +106,13 @@ Create an index on `expire` for session cleanup. Sessions expire after 30 minute
 | `agreement_status`      | VARCHAR(30)  | NOT NULL               |
 | `commission_terms`      | TEXT         | NULL                   |
 | `notes`                 | TEXT         | NULL                   |
+| `status`                | VARCHAR(20)  | NOT NULL, default `INACTIVE` |
 | `created_at`            | TIMESTAMPTZ  | NOT NULL               |
 | `updated_at`            | TIMESTAMPTZ  | NOT NULL               |
 
 **Rule:** A provider must not be presented publicly as verified unless the verification process has been completed.
+
+**VS-005 implementation decision (2026-10-11):** Provider verification uses `UNVERIFIED` or `VERIFIED`; operational status uses `ACTIVE`, `SUSPENDED`, or `INACTIVE`; agreement status uses `PENDING`, `ACTIVE`, or `INACTIVE`. New providers default to `UNVERIFIED`, `INACTIVE`, and `PENDING` respectively. Only an Administrator may manage providers or packages. No public provider-profile endpoint is enabled in VS-005.
 
 ## 7. `packages`
 
@@ -119,16 +124,34 @@ Create an index on `expire` for session cleanup. Sessions expire after 30 minute
 | `description`      | TEXT          | NOT NULL                |
 | `destination`      | VARCHAR(180)  | NOT NULL                |
 | `duration_days`    | INTEGER       | NOT NULL                |
+| `highlights`       | JSONB         | NOT NULL, default `[]`  |
+| `itinerary`        | JSONB         | NOT NULL, default `[]`  |
 | `inclusions`       | JSONB         | NOT NULL, default `[]`  |
 | `exclusions`       | JSONB         | NOT NULL, default `[]`  |
+| `important_information` | TEXT     | NULL                    |
+| `cancellation_terms`| TEXT          | NULL                    |
 | `base_price`       | NUMERIC(12,2) | NULL                    |
 | `currency`         | CHAR(3)       | NOT NULL, default `ETB` |
 | `media_references` | JSONB         | NOT NULL, default `[]`  |
-| `status`           | VARCHAR(20)   | NOT NULL                |
-| `created_at`       | TIMESTAMPTZ   | NOT NULL                |
-| `updated_at`       | TIMESTAMPTZ   | NOT NULL                |
+| `status`           | VARCHAR(20)   | NOT NULL, default `DRAFT` |
+| `created_at`       | TIMESTAMPTZ   | NOT NULL, default `now()` |
+| `updated_at`       | TIMESTAMPTZ   | NOT NULL, default `now()` |
 
-**Rules:** `duration_days` must be positive. Package prices must not overwrite historical quotation or booking prices.
+**VS-004 implementation decision (2026-10-11):** This is the canonical MVP package contract and supersedes the later abbreviated §4.5 draft below. `highlights`, `itinerary`, `inclusions`, and `exclusions` are JSON arrays of non-empty strings. `media_references` is a JSON array of `{ "url": "<https URL>", "alt_text": "<description>" }` objects and contains only media AMX is authorized to publish. The API and UI expose only fields in this public contract; provider contacts, internal notes, costs, and operational records are excluded.
+
+Package status is constrained to `DRAFT`, `ACTIVE`, `INACTIVE`, or `ARCHIVED`; only `ACTIVE` packages are public. `duration_days` must be positive, and `base_price`, when present, must be non-negative. A non-null `base_price` means its starting-price basis and conditions have been confirmed; otherwise the public UI displays “Request a quote.” Prices in historical quotations or bookings remain separate snapshots and must not be overwritten by package changes.
+
+`important_information` and `cancellation_terms` contain package-specific approved public text; no global cancellation/refund policy is inferred. Missing arrays are represented as empty arrays, and optional text and price are represented as `null`.
+
+## 7.1 `package_providers`
+
+| Column        | Type        | Constraints                                |
+| ------------- | ----------- | ------------------------------------------ |
+| `package_id`  | UUID        | PK, FK → `packages.id`, cascade on delete |
+| `provider_id` | UUID        | PK, FK → `providers.id`, restrict on delete |
+| `created_at`  | TIMESTAMPTZ | NOT NULL, default `now()`                  |
+
+**VS-005 implementation decision:** A package may be assigned zero or more provider records. This association is private administration data and is not returned by public package endpoints. Service-level assignments are not introduced in this slice.
 
 ## 8. `inquiries`
 
@@ -151,10 +174,14 @@ Create an index on `expire` for session cleanup. Sessions expire after 30 minute
 | `status`             | VARCHAR(35)   | NOT NULL                      |
 | `assigned_user_id`   | UUID          | FK → `users.id`, NULL         |
 | `internal_notes`     | TEXT          | NULL                          |
+| `idempotency_key`    | UUID          | NOT NULL, UNIQUE              |
+| `request_hash`       | CHAR(64)      | NOT NULL                      |
+| `privacy_consent_at` | TIMESTAMPTZ   | NOT NULL                      |
+| `privacy_notice_version` | VARCHAR(32) | NOT NULL                    |
 | `created_at`         | TIMESTAMPTZ   | NOT NULL                      |
 | `updated_at`         | TIMESTAMPTZ   | NOT NULL                      |
 
-**Rules:** Traveler count and duration must be positive. Validate dates and permitted inquiry statuses in the backend.
+**Rules:** Traveler count and duration must be positive. Validate dates and permitted inquiry statuses in the backend. Public inquiry retries with the same key and request hash replay the original result; changed-payload reuse is rejected. Consent records the timestamp and notice version.
 
 ## 9. `quotations`
 
@@ -328,6 +355,8 @@ Create an index on `expire` for session cleanup. Sessions expire after 30 minute
 
 **Rules:** Audit entries should be append-only for normal application users. Avoid logging passwords, secrets, or unnecessary personal data.
 
+**VS-005 implementation:** Package and provider create, edit, publication/status, and verification changes are written to this table in the same database transaction as the change. Audit summaries record changed field names; lifecycle and verification changes also record their previous and new status. Provider contact and financial/commission values are not copied into audit summaries.
+
 ## 18. Cross-Table Constraints
 
 The following rules require careful backend validation and, where feasible, database enforcement:
@@ -488,14 +517,22 @@ Provider types and verification statuses must use validated values defined in th
 | `name`          | VARCHAR(150)  | Required                           |
 | `slug`          | VARCHAR(180)  | Required, unique                   |
 | `description`   | TEXT          | Required                           |
+| `destination`   | VARCHAR(180)  | Required                           |
 | `duration_days` | INTEGER       | Required, positive                 |
+| `highlights`    | JSONB         | Required, default `[]`             |
+| `itinerary`     | JSONB         | Required, default `[]`             |
+| `inclusions`    | JSONB         | Required, default `[]`             |
+| `exclusions`    | JSONB         | Required, default `[]`             |
+| `important_information` | TEXT   | Optional                           |
+| `cancellation_terms` | TEXT      | Optional                           |
 | `base_price`    | NUMERIC(12,2) | Optional until pricing is approved |
 | `currency`      | CHAR(3)       | Required, initially `ETB`          |
-| `status`        | VARCHAR(20)   | Required                           |
+| `media_references` | JSONB       | Required, default `[]`             |
+| `status`        | VARCHAR(20)   | Required, default `DRAFT`          |
 | `created_at`    | TIMESTAMPTZ   | Required                           |
 | `updated_at`    | TIMESTAMPTZ   | Required                           |
 
-Package pricing is indicative until the actual provider availability and final quotation are confirmed.
+VS-004 uses the canonical package contract and decisions recorded in §7 above. Only `ACTIVE` packages are public. Package pricing remains nullable until its starting-price basis and conditions are confirmed. This slice is read-only; package authoring and status changes remain in VS-005.
 
 ### 4.6 `inquiries`
 
@@ -713,7 +750,7 @@ Never store passwords, session tokens, or other secrets in audit records. Restri
 
 ## 7. Validation Status
 
-**Status:** Proposed — Pending validation.
+**Status:** Package table contract approved for VS-004 implementation; remaining database baseline proposed — pending validation.
 
 This specification must be reconciled with `erd.md`, `entity-specification.md`, `relationship-specification.md`, `constraint-specification.md`, and `financial-data-design.md` before database migrations are created.
 

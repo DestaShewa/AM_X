@@ -3,7 +3,7 @@
 **File:** `docs/database/migration-strategy.md`
 **Project:** AMX — Arba Minch Experiences
 **Phase:** Database & API Design
-**Status:** Draft — Requires Validation
+**Status:** VS-002 authentication and VS-004 package migrations approved for their respective slices; remaining migration baseline remains draft.
 
 ## 1. Purpose
 
@@ -39,7 +39,9 @@ amx/
 └── ...
 ```
 
-Migration files are JavaScript modules under `database/migrations/`; root npm scripts provide `db:up`, `db:down`, and `db:status`. The project owner has approved the authentication-specific `roles`, `users`, and `user_sessions` migration needed by VS-002, using the slice decisions recorded in `docs/api/authentication-authorization.md`. This limited approval does not approve the complete database baseline or authorize other domain migrations.
+Migration files are JavaScript modules under `database/migrations/`; root npm scripts provide `db:up`, `db:down`, and `db:status`. Approved slice-scoped migrations currently cover the VS-002 authentication tables and the VS-004 public `packages` table. The VS-004 package contract is recorded in `table-specification.md` and this approval does not authorize other domain tables or approve the complete database baseline.
+
+**VS-004 migration authorization (2026-10-11):** Create only the `packages` table and its primary-key, unique-slug, approved status, duration, non-negative price, JSON-array, and public-listing index constraints. No providers, package-provider relationships, or other business tables are part of this migration.
 
 ## 4. Migration Naming and Versioning
 
@@ -65,7 +67,7 @@ Create database objects in dependency order:
 
 1. Enable only the approved PostgreSQL extensions, if required.
 2. Create roles and users.
-3. Create customers, providers, and packages.
+3. Create the VS-004 packages table using its approved slice contract; create customers and providers only with their respective approved slices.
 4. Create inquiries.
 5. Create quotations and quotation services.
 6. Create bookings and booking services.

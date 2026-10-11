@@ -3,6 +3,14 @@ import type { Store } from "express-session";
 import { createAuthRouter } from "./auth/routes.js";
 import type { AuthRepository } from "./auth/repository.js";
 import { createSessionMiddleware } from "./auth/session.js";
+import { createManagementRouter } from "./management/routes.js";
+import type { ManagementRepository } from "./management/repository.js";
+import { createPublicInquiryRouter } from "./inquiries/routes.js";
+import type { PublicInquiryRepository } from "./inquiries/repository.js";
+import {
+  createPublicPackageRouter,
+} from "./packages/routes.js";
+import type { PublicPackageRepository } from "./packages/repository.js";
 import { createHealthRouter, type DatabaseHealthCheck } from "./routes/health.js";
 
 type RequestLogger = Pick<Console, "info" | "error">;
@@ -34,6 +42,9 @@ function isMalformedJsonError(error: unknown): error is Error & { type: string }
 export function createApp({
   pool,
   authRepository,
+  packageRepository,
+  inquiryRepository,
+  managementRepository,
   sessionStore,
   sessionSecret,
   frontendOrigin,
@@ -42,6 +53,9 @@ export function createApp({
 }: {
   pool: DatabaseHealthCheck;
   authRepository: AuthRepository;
+  packageRepository: PublicPackageRepository;
+  inquiryRepository?: PublicInquiryRepository;
+  managementRepository?: ManagementRepository;
   sessionStore: Store;
   sessionSecret: string;
   frontendOrigin: string;
@@ -66,10 +80,10 @@ export function createApp({
     if (origin) {
       response.setHeader("Access-Control-Allow-Origin", origin);
       response.setHeader("Access-Control-Allow-Credentials", "true");
-      response.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+      response.setHeader("Access-Control-Allow-Methods", "GET, POST, PATCH, OPTIONS");
       response.setHeader(
         "Access-Control-Allow-Headers",
-        "Content-Type, X-CSRF-Token",
+        "Content-Type, X-CSRF-Token, Idempotency-Key",
       );
       response.setHeader("Vary", "Origin");
     }
@@ -91,6 +105,16 @@ export function createApp({
     "/api/v1/auth",
     createAuthRouter({ repository: authRepository, logger, production }),
   );
+  if (managementRepository) {
+    app.use(
+      "/api/v1/admin",
+      createManagementRouter({ repository: managementRepository, authRepository }),
+    );
+  }
+  app.use("/api/v1/packages", createPublicPackageRouter(packageRepository));
+  if (inquiryRepository) {
+    app.use("/api/v1/inquiries", createPublicInquiryRouter(inquiryRepository));
+  }
   app.use("/api/v1", createHealthRouter(pool));
 
   app.use((_request, response) => {

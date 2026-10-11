@@ -67,7 +67,7 @@ Define the low-fidelity layouts, content hierarchy, components, and interactions
 | Explore Arba Minch Experiences                   |
 | Find an experience that fits your interests.     |
 +--------------------------------------------------+
-| [Category Filter] [Duration Filter]              |
+| Available active experiences                     |
 |                                                  |
 | +----------------------+  +--------------------+ |
 | | Experience Image     |  | Experience Image   | |
@@ -85,6 +85,8 @@ Define the low-fidelity layouts, content hierarchy, components, and interactions
 ```
 
 *Display a starting price only when the pricing basis and conditions are confirmed.
+
+**VS-004 implementation decision:** Do not show category or duration filters in the first public listing because they are not defined in the approved package contract. Pagination is provided when the active package list exceeds one page. The custom-trip link and package-prefilled inquiry action are connected in VS-006 when public inquiry submission is implemented.
 
 ### 3.3 Package Details
 
@@ -117,7 +119,7 @@ Define the low-fidelity layouts, content hierarchy, components, and interactions
 +--------------------------------------------------+
 ```
 
-**Interaction:** The request button opens the inquiry form with the selected package prefilled.
+**VS-006 interaction:** “Request This Experience” opens `/inquiry?package={slug}`. The form resolves the active public package and associates its ID with the submission; visitors can remove the association and submit a custom trip request instead.
 
 ### 3.4 Custom Trip Request Form
 
@@ -131,24 +133,25 @@ Define the low-fidelity layouts, content hierarchy, components, and interactions
 +--------------------------------------------------+
 | CONTACT                                          |
 | Full Name*          [________________________]   |
-| Phone/WhatsApp*     [________________________]   |
+| Phone*              [________________________]   |
 | Email               [________________________]   |
+| Preferred Contact*  [Phone / WhatsApp / Email]    |
 |                                                  |
 | TRIP DETAILS                                     |
 | Travel Date*       [__________]                  |
 | Number of Travelers* [____]                      |
-| Number of Days      [____]                       |
-| Arrival Location    [________________________]   |
+| Number of Days*     [____]                       |
+| Arrival Location*   [________________________]   |
 |                                                  |
 | PREFERENCES                                      |
 | Budget              [________________________]   |
-| Interests           [ ] Nature [ ] Culture       |
-|                     [ ] Wildlife [ ] Other       |
-| Accommodation       [________________________]   |
-| Transport Needs     [________________________]   |
+| Interests           [________________________]   |
+| Accommodation      [Yes / No]                    |
+| Transport Needs    [Yes / No]                     |
 | Special Requests    [________________________]   |
 |                                                  |
-| [ ] I have read the Privacy Policy               |
+| [ ] I consent to use of these details after      |
+|     reading the Privacy Notice                   |
 |                                                  |
 |              [Submit Inquiry]                    |
 +--------------------------------------------------+
@@ -160,7 +163,9 @@ Define the low-fidelity layouts, content hierarchy, components, and interactions
 * Submission progress indicator.
 * Success confirmation with next steps.
 * Clear error message and safe retry behavior.
-* Duplicate-submission prevention.
+* Duplicate-submission prevention with a stable idempotency key across retries.
+
+**VS-006 form contract:** Full name, phone, preferred contact method, future travel date, traveler count, duration, arrival location, accommodation/transport preferences, and privacy consent are required. Email and budget are optional; email is required when selected as the preferred contact method. The Privacy Notice version shown is recorded with consent.
 
 ## 4. Admin Dashboard Wireframes
 

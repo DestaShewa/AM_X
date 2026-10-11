@@ -42,13 +42,17 @@ The API requires `DATABASE_URL`, `SESSION_SECRET`, and `FRONTEND_ORIGIN`. It val
 
 Local PostgreSQL runs as the `db` service in `compose.yaml` on host port `5435` by default to avoid colliding with common local PostgreSQL services on port `5432`. The container stores data in a named Docker volume. Stop the service with `docker compose down`; use `docker compose down -v` only when intentionally deleting local database data.
 
-The chosen migration tool is `node-pg-migrate`. Use `npm run db:up`, `npm run db:down`, and `npm run db:status` from the repository root. The status script reports whether the migration tracking table exists and lists applied migrations. VS-002 adds only the `roles`, `users`, and `user_sessions` authentication tables; no tourism business tables are included.
+The chosen migration tool is `node-pg-migrate`. Use `npm run db:up`, `npm run db:down`, and `npm run db:status` from the repository root. The status script reports whether the migration tracking table exists and lists applied migrations. VS-002 adds the `roles`, `users`, and `user_sessions` authentication tables. VS-004 adds only the `packages` table for public read-only browsing; package management and other tourism business tables remain in separate slices.
 
 After applying the authentication migration, provision the first Administrator interactively with `npm run admin:create`. The command prompts for a name, email, and password, hashes the password with Argon2id, and refuses to create another Administrator. There is no public registration endpoint.
 
 ### Staff sign-in
 
 Open `http://localhost:3000/login` after both development servers are running. The first Administrator must have been provisioned with `npm run admin:create`. The login endpoint rate-limits attempts to five per IP address per 15 minutes per API process. Successful sign-in creates a 30-minute rolling idle session, while the API enforces a 12-hour absolute maximum lifetime.
+
+### Public experiences
+
+Open `http://localhost:3000/experiences` to browse active packages or `/experiences/<slug>` for an active package detail page. The read-only public API is `GET /api/v1/packages` and `GET /api/v1/packages/<slug>`. No sample package content is seeded; until approved packages are entered through the later package-administration slice, visitors see the documented empty state.
 
 ## 5. Verification commands
 

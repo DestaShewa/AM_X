@@ -58,7 +58,7 @@ Every implementation task must reference the relevant requirement IDs, define ac
 
 **Language decision:** The project owner selected TypeScript before starting the next slice. VS-001 application source and tests have been migrated to TypeScript and are type-checked; application JavaScript is not the implementation standard.
 
-**VS-002 decisions:** The project owner approved PostgreSQL-backed sessions (30-minute inactivity expiry, 12-hour absolute lifetime), `ACTIVE`/`INACTIVE` account states, and one-time interactive CLI provisioning for the first Administrator. VS-003 separately records the approved MVP Administrator-only access policy; additional roles and fine-grained permissions remain deferred.
+**VS-002 decisions:** The project owner approved PostgreSQL-backed sessions (30-minute inactivity expiry, 12-hour absolute lifetime), `ACTIVE`/`INACTIVE` account states, and one-time interactive CLI provisioning for the first Administrator. These are limited to the authentication slice; broader RBAC remains pending.
 
 ### Epic 3 — Authentication and Permissions
 
@@ -67,58 +67,67 @@ Every implementation task must reference the relevant requirement IDs, define ac
 * [x] Implement staff login and logout.
 * [x] Implement secure server-managed sessions.
 * [x] Implement password hashing and login rate limiting.
-* [x] Enforce the approved MVP policy: active Administrators only for staff/admin endpoints; visitors remain public.
-* [x] Add one-time CLI provisioning for the initial Administrator; general staff and role management remains deferred.
-* [x] Add the sign-in UI and a minimal authenticated-session page, protected by the approved Administrator-only policy.
+* [ ] Implement role-based access control.
+* [x] Add one-time CLI provisioning for the initial Administrator; ongoing staff and role management remains in VS-003.
+* [x] Add the sign-in UI and a minimal authenticated-session page; protected business operations remain in VS-003.
 * [x] Add authentication and session tests.
 
-**Acceptance criteria:** VS-002 authenticates accounts; VS-003 restricts the admin session endpoint to active Administrators and provides the guard pattern required for subsequent protected operations. The detailed multi-role matrix remains out of scope.
+**Acceptance criteria:** VS-002 authenticates active staff and protects its session endpoint. VS-003 must still define permissions and protect business operations before those operations are implemented.
 
 ### Epic 4 — Public Website and Experience Packages
 
 **Priority: P1**
+**VS-004 status:** In progress; public package contract approved for implementation.
 
-* [ ] Build the responsive public layout and navigation.
-* [ ] Implement the homepage and experience listing.
-* [ ] Implement package detail pages.
-* [ ] Display package prices, inclusions, exclusions, and relevant conditions.
+* [x] Build responsive public navigation for home and experience pages.
+* [x] Implement the homepage and paginated active experience listing.
+* [x] Implement package detail pages using only approved public package fields.
+* [x] Display only confirmed starting prices; show quote-request guidance when price is unconfirmed.
 * [ ] Implement provider profile pages using approved public information.
 * [ ] Build About, How It Works, Contact, Terms, Cancellation, and Privacy pages.
 * [ ] Add WhatsApp contact links.
-* [ ] Implement loading, empty, error, and not-found states.
-* [ ] Test responsive behavior and accessibility.
+* [x] Implement loading, empty, error, and not-found states for package pages.
+* [x] Test responsive behavior and accessibility basics for implemented package pages.
 
 **Acceptance criteria:** Visitors can discover experiences, understand the offer, and find a clear way to contact AMX or submit an inquiry.
 
 ### Epic 5 — Customers and Inquiries
 
 **Priority: P1**
+**VS-006 status:** Implemented; verification in progress.
 
-* [ ] Build the custom-trip inquiry form.
-* [ ] Validate traveler details, dates, group size, budget, interests, and contact information.
-* [ ] Store inquiries and associate them with customer records.
-* [ ] Prevent or handle duplicate submissions appropriately.
+* [x] Build the custom-trip inquiry form and package-prefilled request action.
+* [x] Validate traveler details, future dates, group size, duration, budget, interests, contact information, and consent.
+* [x] Store inquiries and create a separate customer record for each unique public submission.
+* [x] Prevent duplicate creation on idempotent retries and reject key reuse with changed content.
+* [x] Record privacy consent and a versioned notice.
+* [x] Add public response confirmation, loading/error states, and submission rate limiting.
 * [ ] Build the inquiry list, search, filters, and detail view.
 * [ ] Implement inquiry status transitions.
 * [ ] Add staff notes and follow-up scheduling.
-* [ ] Audit important inquiry changes.
-* [ ] Test the public submission-to-admin workflow.
+* [x] Audit public inquiry creation without copying submitted PII into the audit summary.
+* [ ] Verify the public submission workflow end to end and complete the remaining VS-006 checks.
 
 **Acceptance criteria:** A visitor can submit an inquiry, authorized staff can review and update it, and the inquiry history is preserved.
 
 ### Epic 6 — Providers and Packages Administration
 
 **Priority: P1**
+**VS-005 status:** Implemented and verified for Administrator-managed provider records and packages.
 
-* [ ] Implement provider creation and editing.
-* [ ] Record provider contact details, services, prices, availability, and verification information.
-* [ ] Implement provider verification and suspension controls.
-* [ ] Implement package creation, editing, publication, and archiving.
-* [ ] Associate relevant providers and services with packages.
-* [ ] Restrict public information to approved fields.
-* [ ] Test permissions and verification rules.
+* [x] Implement provider creation and editing.
+* [x] Record provider contact details, services, prices, availability, and verification information.
+* [x] Implement provider verification and suspension controls.
+* [x] Implement package creation, editing, publication, deactivation, and archiving.
+* [x] Associate provider records with packages.
+* [x] Restrict public information to approved fields.
+* [x] Test Administrator access, CSRF protection, validation, and verification status.
+
+Service-level package assignments, provider self-service, public provider profiles, and finer-grained staff roles remain outside VS-005.
 
 **Acceptance criteria:** Authorized staff can maintain packages and provider records, and unverified providers are not presented as verified.
+
+**VS-005 implementation decision (2026-10-11):** Only the existing `Administrator` role may access management routes. Providers default to `UNVERIFIED` and `INACTIVE`; agreement status defaults to `PENDING`. Provider-to-package assignment is direct and remains private. The migration creates provider, association, and audit tables. See the approved VS-005 decisions in `docs/database/table-specification.md` and `docs/api/endpoint-catalog.md`.
 
 ### Epic 7 — Quotations
 

@@ -3,6 +3,9 @@
 **Project:** AMX — Arba Minch Experiences
 **Document:** `docs/ui-ux/screen-inventory.md`
 **Version:** 1.0
+**Implementation status:** PUB-02 and PUB-03 were implemented in VS-004; PUB-04, PUB-09, and PUB-12 are implemented in VS-006. Other screens retain their existing validation status.
+
+**VS-005 implementation decision (2026-10-11):** ADM-13/14/15 and ADM-17/19 are implemented for Administrator-only provider and package maintenance. Provider verification and lifecycle state controls are included in the provider editor. This approval does not approve public provider profiles or service-level assignments.
 
 ## 1. Purpose
 
@@ -13,8 +16,8 @@ List all screens required for the AMX MVP, including their purpose, users, main 
 | ID     | Screen               | Purpose                                     | Main Components and Actions                                                      |
 | ------ | -------------------- | ------------------------------------------- | -------------------------------------------------------------------------------- |
 | PUB-01 | Home                 | Introduce AMX and encourage trip inquiries. | Hero, featured experiences, benefits, how-it-works section, CTA                  |
-| PUB-02 | Experiences Listing  | Browse available experiences.               | Experience cards, highlights, duration, confirmed starting prices, details links |
-| PUB-03 | Package Details      | Explain one experience.                     | Gallery, itinerary, inclusions, exclusions, price conditions, request button     |
+| PUB-02 | Experiences Listing | Browse available experiences. | Active experience cards, highlights, duration, confirmed starting prices, pagination, details links |
+| PUB-03 | Package Details      | Explain one experience. | Approved media, itinerary, inclusions, exclusions, price conditions, package-specific terms; inquiry action in VS-006 |
 | PUB-04 | Custom Trip Request  | Collect trip preferences.                   | Contact details, dates, group size, budget, interests, special requirements      |
 | PUB-05 | How It Works         | Explain the coordination process.           | Steps, quotation process, confirmation information, CTA                          |
 | PUB-06 | About AMX            | Explain the service and its purpose.        | Mission, local focus, coordination approach                                      |
@@ -25,6 +28,8 @@ List all screens required for the AMX MVP, including their purpose, users, main 
 | PUB-11 | Cancellation Policy  | Explain cancellation and refund conditions. | Approved policy, relevant deadlines, contact instructions                        |
 | PUB-12 | Privacy Policy       | Explain data collection and use.            | Data categories, purposes, retention, privacy contact                            |
 | PUB-13 | Not Found            | Handle unavailable pages.                   | Clear message, home link, experience link                                        |
+
+**VS-006 public inquiry screens:** PUB-03 links to the request form with the selected active package prefilled. PUB-04 validates contact/trip details and consent, displays loading/error states, and safely reuses an idempotency key for retries. PUB-09 shows the generated inquiry reference without customer data. PUB-12 is presented as a factual Privacy Notice and identifies its version.
 
 ## 3. Authentication and Shared Admin Screens
 
@@ -52,13 +57,13 @@ List all screens required for the AMX MVP, including their purpose, users, main 
 
 | ID     | Screen                  | Purpose                          | Main Components and Actions                                             |
 | ------ | ----------------------- | -------------------------------- | ----------------------------------------------------------------------- |
-| ADM-13 | Provider List           | Manage local providers.          | Search, service type, verification status, active status                |
-| ADM-14 | Provider Details        | Review provider information.     | Contact, services, languages, rates, documents, history                 |
-| ADM-15 | Create/Edit Provider    | Maintain provider records.       | Provider form, services, rates, availability notes, verification fields |
+| ADM-13 | Provider List           | Manage local providers.          | Provider names, verification status, lifecycle status, create/edit actions |
+| ADM-14 | Provider Details        | Review provider information.     | Private contact, services, languages, pricing, agreements, internal notes |
+| ADM-15 | Create/Edit Provider    | Maintain provider records.       | Validated provider form, services, pricing, availability, agreement fields |
 | ADM-16 | Provider Verification   | Record verification decisions.   | Evidence, verification status, reviewer, decision notes                 |
-| ADM-17 | Package List            | Manage public experiences.       | Search, status, price, create/edit actions                              |
-| ADM-18 | Package Details Preview | Preview public-facing content.   | Title, description, images, itinerary, price, inclusions                |
-| ADM-19 | Create/Edit Package     | Create and maintain experiences. | Content fields, itinerary, pricing, images, publication status          |
+| ADM-17 | Package List            | Manage public experiences.       | Package names, status, create/edit actions                              |
+| ADM-18 | Package Details Preview | Preview public-facing content.   | Title, description, media, itinerary, price, inclusions                  |
+| ADM-19 | Create/Edit Package     | Create and maintain experiences. | Validated content form, provider assignments, price, publication status |
 
 ## 6. Quotation Screens
 

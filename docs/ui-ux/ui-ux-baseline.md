@@ -3,6 +3,7 @@
 **Project:** AMX — Arba Minch Experiences
 **Document:** `docs/ui-ux/ui-ux-baseline.md`
 **Version:** 1.0
+**Implementation status:** Public package listing and detail behavior approved for VS-004; remaining UI/UX baseline continues to guide future slices.
 
 ## 1. Purpose
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000/api/v1";
@@ -29,10 +30,6 @@ export default function AdminSession() {
         });
         if (sessionResponse.status === 401) {
           router.replace("/login");
-          return;
-        }
-        if (sessionResponse.status === 403) {
-          router.replace("/");
           return;
         }
         if (!sessionResponse.ok) {
@@ -137,6 +134,16 @@ export default function AdminSession() {
               Signed in as <strong>{user.fullName}</strong> ({user.email})
             </p>
             <p className="mt-2 text-sm text-slate-600">Role: {user.role}</p>
+            {user.role === "Administrator" && (
+              <nav aria-label="Administration" className="mt-6 flex flex-wrap gap-4">
+                <Link className="font-semibold text-[#176B57] hover:underline" href="/admin/packages">
+                  Manage packages
+                </Link>
+                <Link className="font-semibold text-[#176B57] hover:underline" href="/admin/providers">
+                  Manage providers
+                </Link>
+              </nav>
+            )}
             <button
               className="mt-8 rounded-lg bg-[#176B57] px-5 py-3 font-semibold text-white transition hover:bg-[#125744] disabled:cursor-not-allowed disabled:opacity-60"
               disabled={signingOut}

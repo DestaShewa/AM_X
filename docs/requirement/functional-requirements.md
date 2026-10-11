@@ -18,6 +18,8 @@ The system shall display package details, inclusions, exclusions, duration, and 
 
 The system shall provide AMX contact options.
 
+**VS-004 implementation decision (2026-10-11):** FR-02 and FR-03 are approved for the public package slice using the canonical package fields and behavior in `docs/database/table-specification.md` §7 and `docs/implementation/vertical-slice-plan.md` VS-004. This slice is read-only, lists only `ACTIVE` packages, and does not invent or seed package content. This scoped decision does not approve unrelated pending requirements.
+
 ## 2. Inquiry Management
 
 ### FR-05

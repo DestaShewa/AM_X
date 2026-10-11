@@ -169,7 +169,7 @@ The slices below are ordered by dependencies. They form the recommended implemen
 
 **ID:** `VS-002`
 **Priority:** P1
-**Status:** Implemented and locally verified; the approved MVP authorization policy is enforced in VS-003.
+**Status:** Implemented and locally verified; broader RBAC remains in VS-003.
 
 **Goal:** Allow authorized staff to sign in securely.
 
@@ -195,7 +195,7 @@ The slices below are ordered by dependencies. They form the recommended implemen
 * Passwords and session secrets are never returned to the client or written to logs.
 * Sessions are PostgreSQL-backed, idle for no more than 30 minutes, and absolutely limited to 12 hours.
 
-**Scope boundary:** This slice provides authentication and the initial Administrator role only. Authorization enforcement is handled in VS-003; general account/role management and additional roles remain deferred.
+**Scope boundary:** This slice provides authentication and the initial Administrator role only. The role-permission matrix, general account/role management, and authorization for business operations remain in VS-003 and are not inferred from the proposed matrix.
 
 **Verification:** Applied the authentication migration to the local PostgreSQL database; verified first-Administrator CLI provisioning, browser login, authenticated session retrieval, logout, and redirect; tested invalid credentials, inactive accounts, CSRF, origin restrictions, rate limiting, session rotation, logout invalidation, deactivation, and absolute expiry. API/web typechecks, lint, tests, and production builds passed. The temporary verification Administrator was removed.
 
@@ -205,35 +205,35 @@ The slices below are ordered by dependencies. They form the recommended implemen
 
 **ID:** `VS-003`
 **Priority:** P1
-**Status:** Implemented and locally verified; covers the approved MVP Administrator-only policy.
 
-**Goal:** Restrict staff/admin operations to active Administrator accounts while retaining public visitor access.
+**Goal:** Restrict staff operations according to approved permissions.
 
 **Includes**
 
-* Server-side Administrator authorization middleware using the active role loaded from the database.
-* Administrator-only access to the staff session endpoint used by the admin UI.
-* A reusable authorization guard for protected API routes; apply it as each staff-operation route is introduced.
-* Admin UI handling for unauthenticated and authenticated-but-forbidden sessions.
+* Role and permission definitions.
+* Authorization middleware.
+* Staff account management foundations.
+* Protected admin routes.
 * Unauthorized and forbidden responses.
-* Tests for unauthenticated, active Administrator, inactive, and active non-Administrator access.
+* Tests for allowed and denied actions.
 
 **Acceptance criteria**
 
-* Public visitor endpoints remain accessible without an account.
-* Unauthenticated requests to protected staff endpoints receive `401`.
-* Only an active user whose database role is `Administrator` can access staff/admin endpoints.
-* Authenticated users in any other role receive `403`; authorization is enforced by the backend, not only by the UI.
-* Role changes take effect on the next protected request because the current role is reloaded from the database.
+* Unauthenticated requests to protected endpoints are rejected.
+* Authenticated staff without the required permission receive a forbidden response.
+* Permissions are checked on the backend, not just hidden in the UI.
+* Sensitive actions require explicit permissions.
+* Role changes take effect according to the approved session policy.
 
 **Dependencies:** VS-002.
 
-**Decision recorded:** The project owner approved the MVP-only policy: Visitors remain public, and active Administrators are the only staff role. Additional roles and fine-grained exceptions are deferred. The multi-role matrix in the proposed API baseline remains unapproved.
+**Required decision:** Finalize the role matrix for Admin, Operations Staff, Finance Staff, and any optional Auditor role.
 
 ### Slice 4 — Public Package Listing
 
 **ID:** `VS-004`
 **Priority:** P1
+**Status:** Implemented and locally verified (2026-10-11).
 
 **Goal:** Allow visitors to discover active AMX experiences.
 
@@ -242,9 +242,10 @@ The slices below are ordered by dependencies. They form the recommended implemen
 * Public package API.
 * Package listing page and reusable experience card.
 * Package detail page.
-* Public data filtering.
+* Public `ACTIVE`-only filtering and paginated listing. Category filters are deferred because the approved MVP package model has no category field.
 * Responsive layout and loading, empty, error, and not-found states.
 * Basic metadata and accessibility checks.
+* Read-only package migration and API; package authoring remains in VS-005.
 
 **Acceptance criteria**
 
@@ -253,13 +254,20 @@ The slices below are ordered by dependencies. They form the recommended implemen
 * Package details show only approved public information.
 * Invalid package identifiers produce an appropriate not-found response.
 * Layouts work on supported mobile and desktop sizes.
+* Unconfirmed package pricing is not displayed as a starting price.
+* Missing approved package content is handled through an accessible empty state; no fictional package data is introduced.
 
 **Dependencies:** VS-001.
+
+**Approved VS-004 package decisions:** The canonical package contract is the detailed §7 specification in `docs/database/table-specification.md`; it replaces the abbreviated duplicate schema. Public lookup uses a unique slug; listing pagination uses `page` and `page_size`; only `ACTIVE` records are visible. A non-null `base_price` is allowed only after its basis and conditions are confirmed; otherwise the UI requests a quote. Package fields for highlights, itinerary, inclusion/exclusion lists, package-specific public information and cancellation terms, and authorized media references support the approved detail-page design. No category, provider-profile publication, global cancellation policy, sample package content, or package-write workflow is added in this slice. These decisions approve VS-004 implementation, not the complete API/database/UI baselines.
+
+**Verification:** The local database migration applied and status was confirmed. API tests cover unauthenticated listing/detail reads, pagination, invalid/repeated pagination parameters, and unavailable package responses. API and web typechecks, lint, production builds, and a live database-backed browser flow were verified. No example package records were retained.
 
 ### Slice 5 — Provider and Package Administration
 
 **ID:** `VS-005`
 **Priority:** P1
+**Status:** Implemented and verified.
 
 **Goal:** Allow authorized staff to maintain experiences and their provider information.
 
@@ -282,10 +290,15 @@ The slices below are ordered by dependencies. They form the recommended implemen
 
 **Dependencies:** VS-003, VS-004.
 
+**VS-005 implementation decision (2026-10-11):** The project owner approved the minimal provider workflow: `UNVERIFIED`/`VERIFIED` verification; `ACTIVE`/`SUSPENDED`/`INACTIVE` operational status; Administrator-only record management; audit history; and direct provider-to-package assignment. New providers default to `UNVERIFIED`, `INACTIVE`, and `PENDING` agreement status. Staff management APIs require an active Administrator session and CSRF token. Provider contact and operational fields remain private; VS-005 does not enable public provider profiles or service-level assignments. See the implementation backlog, endpoint catalog, request/response specification, and table specification for the complete contract.
+
+**Verification:** API tests cover anonymous and non-Administrator denial, CSRF enforcement, input validation, create/list/status routes, and provider verification. API/web typechecks and lint, production build, PostgreSQL migration, repository transactions/audit writes, and browser workflows for provider creation/status, package creation/edit/assignment/publication, quote-request pricing, and private provider-field exclusion passed. Temporary test users and catalog records were removed.
+
 ### Slice 6 — Public Trip Inquiry Submission
 
 **ID:** `VS-006`
 **Priority:** P1
+**Status:** Implemented; verification in progress.
 
 **Goal:** Allow visitors to request a custom experience.
 
@@ -293,20 +306,27 @@ The slices below are ordered by dependencies. They form the recommended implemen
 
 * Custom-trip form.
 * Inquiry API and database persistence.
-* Validation for contact information, travel dates, traveler count, budget, interests, and required fields.
+* Validation for contact details, future travel dates in `Africa/Addis_Ababa`, positive traveler and duration counts, decimal ETB budget, preferences, and required fields.
 * Submission confirmation.
-* Duplicate-submission protection.
-* Appropriate spam and abuse controls.
+* A package-prefilled inquiry path for active public experiences.
+* Versioned privacy notice and recorded consent.
+* Idempotency-key replay protection and submission rate limiting.
 
 **Acceptance criteria**
 
-* A valid inquiry is stored and receives a unique identifier.
-* Invalid submissions receive understandable field-level errors.
-* Repeated requests do not silently create unintended duplicate inquiries.
-* The public response does not expose internal records or staff notes.
-* Successful submission provides a clear confirmation.
+* A valid inquiry creates a customer and `NEW` inquiry in one transaction and returns a public reference.
+* Each unique submission creates a new customer; phone numbers are not used to match or merge customers.
+* Invalid submissions receive field-level errors, and package selections must still be active.
+* A retry with the same idempotency key and payload replays the original confirmation; reuse with changed content returns `409`.
+* Privacy consent, notice version, inquiry, and PII-minimized audit event are recorded atomically.
+* The public response contains only inquiry ID, reference, status, and creation timestamp; it never exposes customer data or staff notes.
+* Visitors receive a confirmation and can safely retry transient failures.
 
 **Dependencies:** VS-001.
+
+**VS-006 implementation decision (2026-10-11):** Full name and phone are required; email is optional except when email is the selected contact method. Preferred contact method and consent are required. Travel dates must be future dates in `Africa/Addis_Ababa`; traveler count and duration must be positive. Each unique submission creates a new customer, without matching by shared phone. The client supplies a UUID `Idempotency-Key`: identical retries replay the original inquiry and changed-payload reuse returns `409`. Consent is timestamped with notice version `2026-10-11-v1`. An active package may be preselected. To limit abuse, public submissions are limited to five requests per IP per fifteen minutes. This rate limit is operational protection, not a business entitlement.
+
+**Verification:** API tests, PostgreSQL migration and repository transaction/idempotency checks, typechecks, lint, production build, and browser form-submission workflow remain to be recorded before marking this slice complete.
 
 ### Slice 7 — Customer and Inquiry Management
 

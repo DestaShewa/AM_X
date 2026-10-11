@@ -6,6 +6,9 @@ import { createAuthRepository } from "./auth/repository.js";
 import { SESSION_IDLE_TIMEOUT_MS } from "./auth/session.js";
 import { loadConfig } from "./config.js";
 import { createDatabasePool } from "./database.js";
+import { createManagementRepository } from "./management/repository.js";
+import { createPublicInquiryRepository } from "./inquiries/repository.js";
+import { createPublicPackageRepository } from "./packages/repository.js";
 
 const config = loadConfig();
 const pool = createDatabasePool(config.databaseUrl);
@@ -21,6 +24,9 @@ const sessionStore = new PgSessionStore({
 const app = createApp({
   pool,
   authRepository: createAuthRepository(pool),
+  managementRepository: createManagementRepository(pool),
+  inquiryRepository: createPublicInquiryRepository(pool),
+  packageRepository: createPublicPackageRepository(pool),
   sessionStore,
   sessionSecret: config.sessionSecret,
   frontendOrigin: config.frontendOrigin,

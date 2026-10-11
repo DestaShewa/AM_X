@@ -36,22 +36,37 @@ Accept: application/json
 
 ### 3.1 Retrieve a resource
 
-`GET /api/v1/packages/{package_id}`
+`GET /api/v1/packages/{slug}`
 
 ```json
 {
   "data": {
-    "id": "package-uuid",
+    "id": "550e8400-e29b-41d4-a716-446655440000",
+    "slug": "lake-chamo-experience",
     "name": "Lake Chamo Experience",
     "description": "A guided lake experience.",
-    "price_from": "2500.00",
+    "destination": "Arba Minch",
+    "duration_days": 1,
+    "highlights": ["Lake scenery"],
+    "itinerary": [],
+    "inclusions": [],
+    "exclusions": [],
+    "important_information": null,
+    "cancellation_terms": null,
+    "base_price": null,
     "currency": "ETB",
-    "status": "ACTIVE"
+    "media_references": []
   }
 }
 ```
 
-The UUID and example values above illustrate the format; actual responses must contain real resource data.
+The example values illustrate the format only. Public package retrieval is by slug; `id` remains the UUID used for internal relationships. A `null` base price means visitors should request a quote.
+
+**VS-004 approved package responses:** Package listing responses use the standard paginated list envelope. Public package payloads contain only the allowlisted package fields in the endpoint catalog; do not include status, provider details, internal notes, or cost data. The catalog and response shape are approved for this slice; the remaining API baseline is pending.
+
+**VS-005 Administrator management responses:** `/api/v1/admin/packages` and `/api/v1/admin/providers` return the standard `data`/`meta` pagination envelope. Management details use `{ "data": <record> }`. Package management records include the public package fields plus `status`, `provider_ids`, `created_at`, and `updated_at`; provider records include the approved provider table fields and private operational fields and are never returned by public package APIs. Package creation defaults to `DRAFT`, `ETB`, null price/optional text, empty content arrays, and no assigned providers. Provider creation defaults to `UNVERIFIED`, `INACTIVE`, and `PENDING` agreement status. Provider assignment is a direct package association; service-level assignments are outside this slice.
+
+Package and provider edit payloads accept only documented writable fields. Package status updates accept `DRAFT`, `ACTIVE`, `INACTIVE`, or `ARCHIVED`; provider lifecycle updates accept `ACTIVE`, `SUSPENDED`, or `INACTIVE`; verification updates accept `UNVERIFIED` or `VERIFIED`. All management writes require an active Administrator session and a valid CSRF token. Invalid fields/status values return `400`, missing records return `404`, and duplicate package slugs return `409`. Management responses are not cacheable.
 
 ### 3.2 Create a resource
 
@@ -61,13 +76,18 @@ The UUID and example values above illustrate the format; actual responses must c
 {
   "data": {
     "id": "inquiry-uuid",
+    "reference": "INQ-20261009-ABCDEF123456",
     "status": "NEW",
-    "created_at": "2026-10-09T09:00:00+03:00"
+    "created_at": "2026-10-09T09:00:00.000Z"
+  },
+  "meta": {
+    "replayed": false,
+    "privacy_notice_version": "2026-10-11-v1"
   }
 }
 ```
 
-Successful resource creation normally returns `201 Created`, with a `Location` header where appropriate.
+The first successful submission returns `201 Created`; an identical retry with the same `Idempotency-Key` returns `200` and the original confirmation. The public response contains no customer information or internal notes.
 
 ### 3.3 Update a resource
 
@@ -125,25 +145,29 @@ Rules:
 
 Example inquiry request:
 
+`Idempotency-Key: <UUID>`
+
 ```json
 {
   "customer_name": "Example Customer",
   "phone": "+251900000000",
   "email": "customer@example.com",
+  "preferred_contact_method": "PHONE",
+  "package_id": null,
   "travel_date": "2026-11-15",
   "traveler_count": 4,
   "duration_days": 2,
+  "arrival_location": "Arba Minch",
   "budget_amount": "12000.00",
-  "currency": "ETB",
-  "interests": [
-    "Lake Chamo",
-    "Dorze culture"
-  ],
-  "special_requirements": "Family trip"
+  "interests": "Lake Chamo and Dorze culture",
+  "hotel_required": true,
+  "transport_required": true,
+  "special_requests": "Family trip",
+  "privacy_consent": true
 }
 ```
 
-This is an illustrative request. Final field names and required fields must match the approved inquiry schema and SRS. The backend must reject past travel dates where the business rules require future travel.
+For VS-006, the request fields above are the implemented contract. The backend validates future dates in `Africa/Addis_Ababa`, positive traveler and duration counts, the optional decimal ETB budget, email/contact-method consistency, active package selection, and required privacy consent. Unknown fields are rejected. Each unique submission creates a new customer; identical idempotency retries do not create duplicates.
 
 ## 6. Field Representation
 

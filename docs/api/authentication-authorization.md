@@ -39,10 +39,6 @@ The project owner approved these choices for the staff authentication slice:
 
 These decisions approve only the authentication slice. The API and database baselines remain proposed and pending their broader validation.
 
-### VS-003 MVP authorization decision
-
-The project owner approved an MVP-only authorization policy: public visitor functions remain public, and only active users with the `Administrator` role may access staff/admin operations. The Administrator capabilities are those listed in `docs/requirement/role-permissions.md`. Additional staff roles and fine-grained sensitive-action exceptions remain out of scope. This does not approve the broader proposed role matrix below or the API baseline.
-
 ## 3. Authentication Endpoints
 
 | Method | Endpoint              | Purpose                                                   |
@@ -56,11 +52,7 @@ No public registration, password-reset, or customer-login endpoint is included i
 
 Login and logout require the CSRF token in the `X-CSRF-Token` header. Browser requests must come from the configured `FRONTEND_ORIGIN`; credentialed CORS is restricted to that exact origin. The API issues an HTTP-only `amx.sid` cookie, with `Secure` enabled in production.
 
-Under the approved MVP policy, `GET /api/v1/auth/me` is the admin UI's protected session endpoint: it returns `401` when the session is unauthenticated or inactive and `403` when the current active account is not assigned to `Administrator`. The role is refreshed from the database on each request.
-
-## 4. Proposed Post-MVP User Roles
-
-The following matrix is a proposal only. It is not implemented by VS-003 and requires separate approval.
+## 4. User Roles
 
 | Role               | Main Responsibilities                                                                  |
 | ------------------ | -------------------------------------------------------------------------------------- |

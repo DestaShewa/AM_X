@@ -2,7 +2,7 @@
 
 **File:** `docs/api/endpoint-catalog.md`
 **Project:** AMX — Arba Minch Experiences
-**Status:** Proposed — Pending Validation
+**Status:** Package read endpoints approved for VS-004 MVP implementation; remaining endpoint catalog pending validation.
 **API Version:** `/api/v1`
 
 ## 1. Purpose
@@ -31,12 +31,16 @@ All endpoints must follow `api-standards.md`, enforce backend authorization, val
 | Method | Endpoint                          | Access | Purpose                                            |
 | ------ | --------------------------------- | ------ | -------------------------------------------------- |
 | GET    | `/packages`                       | Public | List active packages                               |
-| GET    | `/packages/{package_id}`          | Public | Retrieve package details                           |
+| GET    | `/packages/{slug}`                | Public | Retrieve an active package by its public slug      |
 | GET    | `/providers/public`               | Public | List approved public provider profiles, if enabled |
 | GET    | `/providers/public/{provider_id}` | Public | Retrieve an approved public provider profile       |
 | POST   | `/inquiries`                      | Public | Submit a trip inquiry                              |
 
 Public responses must not expose private provider details, internal notes, customer information, or operational data. Provider endpoints remain optional until the public-profile policy is approved.
+
+**VS-004 package contract:** `GET /packages` accepts `page` (default `1`) and `page_size` (default `20`, maximum `100`), returns only `ACTIVE` packages in deterministic name/slug order, and uses the standard `data` and `meta` pagination envelope. `GET /packages/{slug}` returns one `ACTIVE` package or `404`. Public fields are `id`, `name`, `slug`, `description`, `destination`, `duration_days`, `highlights`, `itinerary`, `inclusions`, `exclusions`, `important_information`, `cancellation_terms`, `base_price`, `currency`, and `media_references`. Money is a decimal string or `null`; no private provider or operational fields are returned.
+
+**VS-006 public inquiry contract:** `POST /inquiries` accepts the documented public trip/contact fields and requires a UUID `Idempotency-Key` header. Full name, phone, preferred contact method, future travel date, positive traveler count and duration, arrival location, accommodation/transport preferences, and privacy consent are required. Email is optional unless selected as the preferred contact method. Optional package IDs must identify an active package. Successful first submission returns `201`; identical retries with the same key return the original safe confirmation with `200`; changed content with that key returns `409`. Invalid data returns field-level `400`, inactive/missing packages return `400`, and the rate limit returns `429`. Responses contain only inquiry ID, reference, status, and timestamp. Limits: five public submissions per IP per 15 minutes.
 
 ## 5. Customer Management
 
@@ -48,32 +52,34 @@ Public responses must not expose private provider details, internal notes, custo
 | GET    | `/customers/{customer_id}/inquiries` | Admin/Staff | List a customer's inquiries |
 | GET    | `/customers/{customer_id}/bookings`  | Admin/Staff | List a customer's bookings  |
 
-Customer records should be created or matched when processing inquiries. Avoid duplicate customers where reliable matching is possible.
+Customer records are created when processing inquiries. For VS-006 public submissions, every unique submission creates a new customer; phone is not a unique identifier and is not used to match or merge records. Any future staff-side duplicate resolution requires its own approved workflow.
 
 ## 6. Provider Management
 
 | Method | Endpoint                                | Access           | Purpose                                     |
 | ------ | --------------------------------------- | ---------------- | ------------------------------------------- |
-| GET    | `/providers`                            | Admin/Staff      | List and filter providers                   |
-| POST   | `/providers`                            | Admin/Staff      | Register a provider                         |
-| GET    | `/providers/{provider_id}`              | Admin/Staff      | Retrieve provider details                   |
-| PATCH  | `/providers/{provider_id}`              | Admin/Staff      | Update provider information                 |
-| PATCH  | `/providers/{provider_id}/verification` | Authorized Staff | Update verification status                  |
-| PATCH  | `/providers/{provider_id}/status`       | Authorized Staff | Activate, suspend, or deactivate a provider |
+| GET    | `/admin/providers`                            | Administrator | List providers, including inactive records |
+| POST   | `/admin/providers`                            | Administrator | Register a provider                       |
+| GET    | `/admin/providers/{provider_id}`              | Administrator | Retrieve provider details                  |
+| PATCH  | `/admin/providers/{provider_id}`              | Administrator | Update provider information                |
+| PATCH  | `/admin/providers/{provider_id}/verification` | Administrator | Update verification status                 |
+| PATCH  | `/admin/providers/{provider_id}/status`       | Administrator | Activate, suspend, or deactivate a provider |
 
-Provider verification and status changes must be permission-controlled and audit logged. Provider self-service accounts are outside the MVP.
+Provider verification and status changes must be Administrator-only and audit logged. Provider self-service accounts are outside the MVP.
 
 ## 7. Package Management
 
 | Method | Endpoint                              | Access           | Purpose                                    |
 | ------ | ------------------------------------- | ---------------- | ------------------------------------------ |
-| GET    | `/admin/packages`                     | Admin/Staff      | List all packages, including inactive ones |
-| POST   | `/admin/packages`                     | Admin/Staff      | Create a package                           |
-| GET    | `/admin/packages/{package_id}`        | Admin/Staff      | Retrieve package details                   |
-| PATCH  | `/admin/packages/{package_id}`        | Admin/Staff      | Update package information                 |
-| PATCH  | `/admin/packages/{package_id}/status` | Authorized Staff | Activate, deactivate, or archive a package |
+| GET    | `/admin/packages`                     | Administrator | List all packages, including inactive ones |
+| POST   | `/admin/packages`                     | Administrator | Create a package                           |
+| GET    | `/admin/packages/{package_id}`        | Administrator | Retrieve package details                   |
+| PATCH  | `/admin/packages/{package_id}`        | Administrator | Update package information                 |
+| PATCH  | `/admin/packages/{package_id}/status` | Administrator | Activate, deactivate, or archive a package |
 
 Historical quotations and bookings must retain the agreed package details even if the package changes later.
+
+**VS-005 implementation decision (2026-10-11):** These routes are mounted under `/api/v1/admin`. All list endpoints accept `page` (default `1`) and `page_size` (default `20`, maximum `100`) and return the standard `data`/`meta` envelope. Mutating requests require an authenticated active Administrator and the session CSRF token. Package status is `DRAFT`, `ACTIVE`, `INACTIVE`, or `ARCHIVED`; provider verification is `UNVERIFIED` or `VERIFIED`; provider operational status is `ACTIVE`, `SUSPENDED`, or `INACTIVE`. Create, edit, status, and verification writes produce append-only audit entries in the same transaction. Unknown request fields are rejected.
 
 ## 8. Inquiry Management
 

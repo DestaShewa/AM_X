@@ -11,6 +11,8 @@ Establish the approved reference for AMX database design before implementation. 
 
 Changes to this baseline must be reviewed and documented to keep implementation aligned with the approved requirements and architecture.
 
+**Slice-scoped implementation approval (2026-10-11):** VS-004 may create and read the `packages` table using the approved package contract in `table-specification.md` §7. This authorization is limited to public package browsing and does not change the pending status of the full database baseline or authorize other domain tables.
+
 ## 2. Baseline Documents
 
 The database design consists of:

@@ -69,18 +69,7 @@ The system shall follow the principle of least privilege:
 
 > Users should only access information and actions required for their responsibilities.
 
-## 6. Approved MVP Authorization Policy
-
-For VS-003, the project owner approved the MVP-only policy:
-
-* Visitors use public functionality without a staff account.
-* Only active users assigned to the `Administrator` role may access staff/admin operations.
-* The Administrator retains the capabilities listed in Section 3.
-* No Operations, Finance, Auditor, or other staff roles, and no fine-grained permission exceptions, are introduced in this slice.
-
-This policy does not resolve the detailed permissions for future roles or sensitive-action separation.
-
-## 7. Future Roles
+## 6. Future Roles
 
 Possible future roles:
 

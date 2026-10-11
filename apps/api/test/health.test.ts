@@ -5,12 +5,17 @@ import test from "node:test";
 import session from "express-session";
 import { createApp } from "../src/app.js";
 import type { AuthRepository } from "../src/auth/repository.js";
+import type { PublicPackageRepository } from "../src/packages/repository.js";
 import type { DatabaseHealthCheck } from "../src/routes/health.js";
 
 const emptyAuthRepository: AuthRepository = {
   findByEmail: async () => null,
   findActiveById: async () => null,
   recordLogin: async () => {},
+};
+const emptyPackageRepository: PublicPackageRepository = {
+  listActive: async () => ({ items: [], totalItems: 0 }),
+  findActiveBySlug: async () => null,
 };
 
 async function withServer(
@@ -22,6 +27,7 @@ async function withServer(
     createApp({
       pool,
       authRepository: emptyAuthRepository,
+      packageRepository: emptyPackageRepository,
       sessionStore: new session.MemoryStore(),
       sessionSecret: "test-session-secret-that-is-at-least-32-characters",
       frontendOrigin: "http://localhost:3000",
