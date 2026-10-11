@@ -107,7 +107,7 @@ Do not use `Passed` based on assumptions, document existence alone, or AI-genera
 
 ### D. Coding and Git Workflow
 
-* [ ] **IMP-VAL-020:** Coding standards are consistent with the selected JavaScript stack.
+* [ ] **IMP-VAL-020:** Coding standards are consistent with the selected TypeScript stack.
 * [ ] **IMP-VAL-021:** Frontend, backend, and database responsibilities are clearly separated.
 * [ ] **IMP-VAL-022:** Branch naming and commit conventions are documented.
 * [ ] **IMP-VAL-023:** Secret files, generated files, and other excluded artifacts are covered by `.gitignore`.
@@ -387,7 +387,7 @@ Do not mark a checklist item as passed merely because the documentation describe
 
 ### D. Coding and Git Workflow
 
-* [ ] **IMP-VAL-021:** Coding standards are consistent with the selected JavaScript stack.
+* [ ] **IMP-VAL-021:** Coding standards are consistent with the selected TypeScript stack.
 * [ ] **IMP-VAL-022:** Frontend, backend, and database responsibilities are separated appropriately.
 * [ ] **IMP-VAL-023:** Branch naming and commit conventions are documented.
 * [ ] **IMP-VAL-024:** `.gitignore` excludes environment secrets and appropriate generated artifacts.

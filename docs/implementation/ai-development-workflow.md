@@ -17,8 +17,8 @@ AI is a development assistant, not the project owner. It may analyze, propose, i
 
 This workflow applies to AI-assisted work on:
 
-* Next.js, React, JavaScript, and Tailwind CSS frontend.
-* Node.js and Express backend.
+* Next.js, React, TypeScript, and Tailwind CSS frontend.
+* Node.js, Express, and TypeScript backend.
 * PostgreSQL schema, constraints, and migrations.
 * REST API endpoints and OpenAPI documentation.
 * Authentication, authorization, and security controls.

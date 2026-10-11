@@ -23,14 +23,15 @@ Every implementation task must reference the relevant requirement IDs, define ac
 
 **Priority: P0**
 
-* [ ] Create the repository and configure the planned project structure.
-* [ ] Configure npm workspaces and root scripts.
-* [ ] Initialize the Next.js frontend and Express backend.
-* [ ] Configure environment variables and `.env.example`.
-* [ ] Configure PostgreSQL and Docker Compose for local development.
-* [ ] Add linting, formatting, and test scripts.
+* [x] Create the repository and configure the planned project structure.
+* [x] Configure npm workspaces and root scripts.
+* [x] Initialize the Next.js frontend and Express backend.
+* [x] Configure environment variables and `.env.example`.
+* [x] Configure PostgreSQL and Docker Compose for local development.
+* [x] Add type-checking, linting, and test scripts.
+* [ ] Add a formatting tool and script.
 * [ ] Establish Git branches, commits, and review workflow.
-* [ ] Add a root README with setup and run instructions.
+* [x] Add a root README with setup and run instructions.
 
 **Acceptance criteria:** Both applications can be started locally, environment secrets are excluded from Git, and setup instructions are reproducible.
 
@@ -40,11 +41,11 @@ Every implementation task must reference the relevant requirement IDs, define ac
 
 * [ ] Reconcile database tables, relationships, constraints, and naming.
 * [ ] Resolve critical financial and booking rules before implementation.
-* [ ] Select and configure a database migration tool.
+* [x] Select and configure a database migration tool.
 * [ ] Create and review the initial database migrations.
 * [ ] Configure database access and transaction handling.
-* [ ] Implement Express application setup and centralized error handling.
-* [ ] Implement `/api/v1/` routing and health-check endpoint.
+* [x] Implement Express application setup and centralized error handling.
+* [x] Implement `/api/v1/` routing and health-check endpoint.
 * [ ] Configure request validation and standardized API responses.
 * [ ] Generate or maintain OpenAPI documentation.
 * [ ] Add database and API integration-test foundations.
@@ -53,19 +54,25 @@ Every implementation task must reference the relevant requirement IDs, define ac
 
 **Important:** Do not finalize payment/refund logic, booking snapshots, follow-up relationships, or other unresolved business rules by guessing. Resolve and document them first.
 
+**VS-001 note:** The technical foundation is implemented and locally verified. No AMX domain tables or business migrations have been created. Formatting tooling and business-dependent database/API work remain open.
+
+**Language decision:** The project owner selected TypeScript before starting the next slice. VS-001 application source and tests have been migrated to TypeScript and are type-checked; application JavaScript is not the implementation standard.
+
+**VS-002 decisions:** The project owner approved PostgreSQL-backed sessions (30-minute inactivity expiry, 12-hour absolute lifetime), `ACTIVE`/`INACTIVE` account states, and one-time interactive CLI provisioning for the first Administrator. These are limited to the authentication slice; broader RBAC remains pending.
+
 ### Epic 3 — Authentication and Permissions
 
 **Priority: P1**
 
-* [ ] Implement staff login and logout.
-* [ ] Implement secure server-managed sessions.
-* [ ] Implement password hashing and account protection.
+* [x] Implement staff login and logout.
+* [x] Implement secure server-managed sessions.
+* [x] Implement password hashing and login rate limiting.
 * [ ] Implement role-based access control.
-* [ ] Create and manage staff accounts and roles.
-* [ ] Protect administrative frontend routes and backend endpoints.
-* [ ] Add authentication, authorization, and session tests.
+* [x] Add one-time CLI provisioning for the initial Administrator; ongoing staff and role management remains in VS-003.
+* [x] Add the sign-in UI and a minimal authenticated-session page; protected business operations remain in VS-003.
+* [x] Add authentication and session tests.
 
-**Acceptance criteria:** Unauthenticated users cannot access protected operations, and each staff role can perform only its authorized actions.
+**Acceptance criteria:** VS-002 authenticates active staff and protects its session endpoint. VS-003 must still define permissions and protect business operations before those operations are implemented.
 
 ### Epic 4 — Public Website and Experience Packages
 

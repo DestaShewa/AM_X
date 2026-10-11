@@ -1,0 +1,35 @@
+{
+  "name": "amx",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/api",
+    "apps/web"
+  ],
+  "engines": {
+    "node": ">=24 <25",
+    "npm": ">=11 <12"
+  },
+  "scripts": {
+    "dev:api": "npm run dev --workspace @amx/api",
+    "dev:web": "npm run dev --workspace @amx/web",
+    "build": "npm run build --workspace @amx/api && npm run build --workspace @amx/web",
+    "typecheck": "npm run typecheck --workspace @amx/api && npm run typecheck --workspace @amx/web",
+    "lint": "npm run lint --workspace @amx/api && npm run lint --workspace @amx/web",
+    "test": "npm test --workspace @amx/api",
+    "admin:create": "node --import tsx --env-file-if-exists=.env apps/api/scripts/create-admin.ts",
+    "db:up": "node --env-file-if-exists=.env node_modules/.bin/node-pg-migrate up --migrations-dir database/migrations --database-url-var DATABASE_URL",
+    "db:down": "node --env-file-if-exists=.env node_modules/.bin/node-pg-migrate down --migrations-dir database/migrations --database-url-var DATABASE_URL",
+    "db:status": "node --import tsx --env-file-if-exists=.env apps/api/scripts/migration-status.ts"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.19.2",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "node-pg-migrate": "9.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
+  }
+}

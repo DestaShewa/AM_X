@@ -12,8 +12,8 @@ Define the repository layout for AMX so the frontend, backend, database resource
 
 AMX uses a **modular monolith** with one frontend application, one backend API, and one PostgreSQL database.
 
-* **Frontend:** Next.js, React, JavaScript, Tailwind CSS.
-* **Backend:** Node.js, Express, JavaScript.
+* **Frontend:** Next.js, React, TypeScript, Tailwind CSS.
+* **Backend:** Node.js, Express, TypeScript.
 * **Database:** PostgreSQL with version-controlled migrations.
 * **Infrastructure:** Docker and a Linux-based deployment environment.
 * **API:** REST under `/api/v1/`.
@@ -68,8 +68,8 @@ apps/web/
 │   │   ├── (public)/
 │   │   ├── admin/
 │   │   ├── login/
-│   │   ├── layout.js
-│   │   ├── page.js
+│   │   ├── layout.tsx
+│   │   ├── page.tsx
 │   │   └── globals.css
 │   ├── components/
 │   │   ├── ui/
@@ -91,7 +91,8 @@ apps/web/
 │   ├── hooks/
 │   └── config/
 ├── tests/
-├── next.config.js
+├── next.config.mjs
+├── tsconfig.json
 ├── package.json
 └── README.md
 ```
@@ -112,8 +113,8 @@ The exact Next.js configuration filename should follow the installed framework v
 ```text
 apps/api/
 ├── src/
-│   ├── app.js
-│   ├── server.js
+│   ├── app.ts
+│   ├── server.ts
 │   ├── config/
 │   ├── middleware/
 │   ├── modules/
@@ -135,11 +136,9 @@ apps/api/
 │   ├── integrations/
 │   ├── utils/
 │   └── docs/
-├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── fixtures/
+├── test/
 ├── package.json
+├── tsconfig.json
 └── README.md
 ```
 
@@ -149,12 +148,12 @@ Each module should contain only the files it needs. A typical module may use:
 
 ```text
 inquiries/
-├── inquiry.routes.js
-├── inquiry.controller.js
-├── inquiry.service.js
-├── inquiry.repository.js
-├── inquiry.validation.js
-└── inquiry.test.js
+├── inquiry.routes.ts
+├── inquiry.controller.ts
+├── inquiry.service.ts
+├── inquiry.repository.ts
+├── inquiry.validation.ts
+└── inquiry.test.ts
 ```
 
 Responsibilities:
@@ -273,4 +272,4 @@ The repository structure is ready to guide implementation when:
 
 ## 13. Next Document
 
-Create `docs/implementation/coding-standards.md` to define JavaScript, React, Express, naming, error-handling, security, and code-quality conventions before implementation begins.
+Use `docs/implementation/coding-standards.md` for TypeScript, React, Express, naming, error-handling, security, and code-quality conventions.

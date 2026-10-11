@@ -26,15 +26,31 @@ The MVP uses staff-managed accounts. Customers and providers do not need login a
 
 **MVP decision:** Use server-managed sessions rather than storing authentication tokens in browser local storage. The final cookie and session configuration must match the deployment architecture.
 
+### Authentication-slice decisions recorded
+
+The project owner approved these choices for the staff authentication slice:
+
+* Store opaque server-managed sessions in PostgreSQL; do not use an in-memory production session store.
+* Expire sessions after 30 minutes of inactivity and enforce a 12-hour absolute maximum lifetime.
+* Rotate the session identifier after successful login; invalidate the session on logout.
+* Use `ACTIVE` and `INACTIVE` as the staff-account statuses; only `ACTIVE` accounts may authenticate.
+* Provision the first `Administrator` through a one-time interactive CLI command that prompts for credentials. Public registration is not provided.
+* Use the existing MVP Administrator role from `docs/requirement/role-permissions.md` for this slice. Other staff roles and detailed operation permissions remain out of scope and unresolved.
+
+These decisions approve only the authentication slice. The API and database baselines remain proposed and pending their broader validation.
+
 ## 3. Authentication Endpoints
 
 | Method | Endpoint              | Purpose                                                   |
 | ------ | --------------------- | --------------------------------------------------------- |
+| GET    | `/api/v1/auth/csrf-token` | Issue a session-bound CSRF token for browser requests |
 | POST   | `/api/v1/auth/login`  | Authenticate a staff user                                 |
 | POST   | `/api/v1/auth/logout` | End the current session                                   |
 | GET    | `/api/v1/auth/me`     | Retrieve the authenticated user's profile and permissions |
 
 No public registration, password-reset, or customer-login endpoint is included in the initial MVP. If password recovery is needed, implement a secure recovery workflow before production launch.
+
+Login and logout require the CSRF token in the `X-CSRF-Token` header. Browser requests must come from the configured `FRONTEND_ORIGIN`; credentialed CORS is restricted to that exact origin. The API issues an HTTP-only `amx.sid` cookie, with `Secure` enabled in production.
 
 ## 4. User Roles
 
@@ -81,7 +97,7 @@ Never trust a user ID, role, payment status, or permission supplied by the front
 ## 7. Password and Session Security
 
 * Enforce a reasonable minimum password length and block commonly compromised passwords where practical.
-* Rate-limit login attempts and use increasing delays or temporary throttling against repeated failures.
+* Limit login attempts to five per IP address per 15-minute window per API process. Multi-process deployments require a shared rate-limit store.
 * Return generic login errors that do not reveal whether an email address exists.
 * Rotate the session identifier after successful authentication and privilege changes.
 * Expire inactive sessions and impose a defined maximum session lifetime.

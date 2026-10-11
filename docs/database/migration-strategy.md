@@ -22,7 +22,7 @@ Define how AMX database schema changes will be designed, reviewed, applied, test
 
 ## 3. Technology and Organization
 
-Use PostgreSQL for the database and a migration tool compatible with the chosen Node.js backend stack. The exact tool will be selected during implementation.
+Use PostgreSQL for the database and `node-pg-migrate` for version-controlled migrations in the Node.js application.
 
 Suggested structure:
 
@@ -31,16 +31,15 @@ amx/
 ├── docs/
 │   └── database/
 │       └── migration-strategy.md
-├── backend/
-│   ├── migrations/
-│   │   ├── 001_create_roles_and_users.sql
-│   │   ├── 002_create_customers_and_providers.sql
-│   │   └── ...
-│   └── src/
+├── apps/
+│   └── api/
+│       └── src/
+├── database/
+│   └── migrations/
 └── ...
 ```
 
-This is an illustrative structure. The final migration format and execution commands depend on the migration tool selected.
+Migration files are JavaScript modules under `database/migrations/`; root npm scripts provide `db:up`, `db:down`, and `db:status`. The project owner has approved the authentication-specific `roles`, `users`, and `user_sessions` migration needed by VS-002, using the slice decisions recorded in `docs/api/authentication-authorization.md`. This limited approval does not approve the complete database baseline or authorize other domain migrations.
 
 ## 4. Migration Naming and Versioning
 

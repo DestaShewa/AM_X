@@ -52,6 +52,20 @@ Define the proposed PostgreSQL tables, columns, data types, keys, and nullabilit
 
 **Rule:** Require at least one usable login identifier. Enforce allowed account statuses and credential policies.
 
+**Authentication-slice decision:** VS-002 uses email/password credentials, so the authentication migration requires a unique, lowercase, non-null email and constrains status to `ACTIVE` or `INACTIVE`. Only `ACTIVE` accounts can log in. This does not approve other pending user, role, or business-table decisions.
+
+### 4.1 `user_sessions`
+
+This authentication-support table stores server-managed sessions and is not an AMX business record.
+
+| Column  | Type         | Constraints                   |
+| ------- | ------------ | ----------------------------- |
+| `sid`   | VARCHAR      | PK                            |
+| `sess`  | JSON         | NOT NULL                      |
+| `expire`| TIMESTAMPTZ  | NOT NULL                      |
+
+Create an index on `expire` for session cleanup. Sessions expire after 30 minutes of inactivity and have a 12-hour absolute maximum lifetime. Do not expose session contents or IDs through application responses or logs.
+
 ## 5. `customers`
 
 | Column                     | Type         | Constraints |

@@ -50,8 +50,8 @@ These documents must be used together with the authoritative requirements, archi
 
 | Layer                      | Planned technology                                           |
 | -------------------------- | ------------------------------------------------------------ |
-| Frontend                   | Next.js, React, JavaScript, Tailwind CSS                     |
-| Backend                    | Node.js and Express                                          |
+| Frontend                   | Next.js, React, TypeScript, Tailwind CSS                    |
+| Backend                    | Node.js, Express, and TypeScript                             |
 | API                        | REST, versioned under `/api/v1/`                             |
 | Database                   | PostgreSQL                                                   |
 | Development and deployment | Linux, Docker, Docker Compose                                |
@@ -129,7 +129,7 @@ The exact sequence may be adjusted when dependencies or validated requirements j
 
 All implementation work must follow these rules:
 
-* Use JavaScript ES modules and the established naming conventions.
+* Use TypeScript with ES modules and the established naming conventions.
 * Maintain clear boundaries between frontend, backend, and database responsibilities.
 * Validate all untrusted inputs on the server.
 * Enforce permissions in the backend.

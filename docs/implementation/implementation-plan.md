@@ -49,9 +49,9 @@ Define the implementation strategy for converting the approved AMX requirements,
 
 | Layer                       | Technology                       |
 | --------------------------- | -------------------------------- |
-| Public website and admin UI | Next.js, React, JavaScript       |
+| Public website and admin UI | Next.js, React, TypeScript       |
 | Styling                     | Tailwind CSS                     |
-| Backend                     | Node.js, Express                 |
+| Backend                     | Node.js, Express, TypeScript     |
 | API                         | REST, `/api/v1/`, JSON           |
 | Database                    | PostgreSQL                       |
 | Database changes            | Version-controlled migrations    |

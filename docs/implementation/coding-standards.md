@@ -20,9 +20,9 @@ Define consistent coding practices for the AMX frontend, backend, database integ
 * Follow the approved architecture, requirements, and API specifications.
 * Do not introduce new dependencies without a clear justification.
 
-## 3. JavaScript Standards
+## 3. TypeScript Standards
 
-Use modern JavaScript with ES modules and the project's configured Node.js version.
+Use TypeScript with ES modules and the project's configured Node.js version. Keep strict type-checking enabled for application code and tests.
 
 ### Naming
 
@@ -32,7 +32,7 @@ Use modern JavaScript with ES modules and the project's configured Node.js versi
 | Functions | `camelCase`                                  | `createQuotation()`  |
 | Classes   | `PascalCase`                                 | `BookingService`     |
 | Constants | `UPPER_SNAKE_CASE` for true constants        | `MAX_PAGE_SIZE`      |
-| Files     | Consistent descriptive names                 | `booking.service.js` |
+| Files     | Consistent descriptive names                 | `booking.service.ts` |
 | Folders   | Lowercase, preferably plural for collections | `bookings/`          |
 
 ### Rules
@@ -46,10 +46,13 @@ Use modern JavaScript with ES modules and the project's configured Node.js versi
 * Avoid unexplained magic numbers and strings.
 * Remove unused variables, dead code, and debugging statements.
 * Do not suppress errors merely to make a workflow continue.
+* Prefer `unknown` over `any` for values whose shape is not yet validated.
+* Define explicit types for public API contracts, configuration, and important domain data.
+* Avoid type assertions when a type guard or more precise type can express the check.
 
 ## 4. Frontend Standards
 
-**Stack:** Next.js, React, JavaScript, and Tailwind CSS.
+**Stack:** Next.js, React, TypeScript, and Tailwind CSS.
 
 ### React and Components
 
@@ -82,7 +85,7 @@ Use modern JavaScript with ES modules and the project's configured Node.js versi
 
 ## 5. Backend Standards
 
-**Stack:** Node.js and Express.
+**Stack:** Node.js, Express, and TypeScript.
 
 ### Module Responsibilities
 

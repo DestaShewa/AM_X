@@ -91,14 +91,16 @@ Complete or confirm these foundations before building dependent features.
 
 | ID    | Foundation                       | Required outcome                                                                                 |
 | ----- | -------------------------------- | ------------------------------------------------------------------------------------------------ |
-| VS-00 | Requirements and design baseline | Relevant requirements and design decisions are sufficiently clear for implementation.            |
-| VS-01 | Repository foundation            | Frontend, backend, scripts, Git workflow, and environment configuration are established.         |
-| VS-02 | Database foundation              | PostgreSQL connection, migration process, transaction handling, and initial schema are verified. |
+| VS-000 | Readiness and scope gate         | Technical-only foundation is authorized; decisions for later business slices remain gated.          |
+| VS-01 | Repository foundation            | Frontend/backend structure, scripts, Git workflow, and environment configuration are established. |
+| VS-02 | Database foundation              | PostgreSQL connectivity and the migration process are verified without implementing domain tables. |
 | VS-03 | API foundation                   | Express setup, `/api/v1/`, validation, standardized errors, and health endpoint work.            |
 | VS-04 | Testing foundation               | Unit and integration tests can run consistently.                                                 |
 | VS-05 | Security foundation              | Session approach, authorization design, secret handling, and security controls are established.  |
 
 **Important:** The database, API, and UI/UX documents contain decisions that still require reconciliation or approval. Before the relevant feature is implemented, resolve the affected decisions, update the authoritative document, and record the decision. Do not assume a proposed design is already approved.
+
+VS-001 delivers foundations VS-01 through VS-04 together. These are prerequisite work items within the technical foundation, not separate completed slices. VS-05 remains a prerequisite for authentication and other protected staff features.
 
 ---
 
@@ -106,36 +108,68 @@ Complete or confirm these foundations before building dependent features.
 
 The slices below are ordered by dependencies. They form the recommended implementation sequence, not evidence of completed work.
 
+### Slice 0 — Readiness and Scope Gate
+
+**ID:** `VS-000`
+**Type:** Planning gate; no application code
+**Status:** Technical-foundation work authorized; domain implementation remains gated
+
+**Goal:** Confirm what may safely proceed and prevent pending business or design decisions from being treated as approved.
+
+**Includes**
+
+* Confirm the approved architecture and inspect the current repository before implementation.
+* Record the validation status of the requirements, database, API, and UI/UX baselines.
+* Identify unresolved decisions and the slices that depend on them.
+* Authorize technical-foundation work only while business-specific decisions remain open.
+* Keep domain features and domain-schema migrations blocked until their relevant rules are approved or formally deferred.
+
+**Decision recorded:** The project owner authorized technical-foundation work to proceed without waiting for all baselines to be formally approved. This does not approve the pending requirements, database, or API baselines, or authorize implementing unresolved business behavior.
+
+**Acceptance criteria**
+
+* The approved architecture is used as the technical direction.
+* Pending and approved baselines are clearly distinguished.
+* Open decisions are not guessed; each is resolved or kept as a blocker for the slice that needs it.
+* The first technical slice has clear scope, prerequisites, and verification criteria before coding begins.
+
 ### Slice 1 — Application Health and Database Connectivity
 
 **ID:** `VS-001`
 **Priority:** P0
+**Status:** Implemented and locally verified; a high-severity advisory remains in the frontend lint tool's transitive development dependencies.
+**Language:** The project owner selected TypeScript; frontend/backend application source and tests use strict TypeScript.
 
-**Goal:** Establish a verifiable connection between the backend and database.
+**Goal:** Establish a reproducible local development foundation and verify the application-to-database path without implementing AMX business behavior.
 
 **Includes**
 
-* Express application and server startup.
-* Configuration validation.
-* `GET /api/v1/health` endpoint.
-* PostgreSQL connectivity check.
-* Centralized error handling and request logging.
-* Initial automated tests.
+* Repository structure and local development setup for the planned Next.js/TypeScript frontend and Express/TypeScript backend.
+* Documented, compatible runtime/tool versions and root development scripts.
+* Environment-variable template and startup configuration validation.
+* Local PostgreSQL service configuration and secure application database connection.
+* Selection and configuration of a version-controlled migration tool; no AMX domain tables or business data migrations.
+* Express application setup, `/api/v1/` routing, centralized error handling, and request logging.
+* `GET /api/v1/health` endpoint that reports application and database health without exposing secrets.
+* A minimal frontend shell and documented commands to start the frontend and backend locally.
+* Unit and integration-test foundations, including healthy and unavailable database cases.
 
 **Acceptance criteria**
 
-* The API starts using documented local configuration.
-* The health endpoint reports application status.
-* Database health is reported accurately without exposing credentials or internal secrets.
-* Missing required configuration produces a clear startup failure.
-* Automated tests verify healthy and unhealthy conditions.
+* A developer can follow the setup documentation to start the frontend, API, and local PostgreSQL service.
+* The API and frontend start using documented local configuration, and missing required configuration produces a clear startup failure.
+* The migration tool can apply and report migration state without creating AMX domain tables.
+* The health endpoint accurately distinguishes application health from database connectivity and exposes no credentials or internal secrets.
+* Automated tests cover healthy and unavailable database conditions, configuration errors, and the health response.
+* No unresolved business rule, domain workflow, or pending domain-schema decision is implemented as part of this slice.
 
-**Dependencies:** VS-01 through VS-04.
+**Dependencies:** VS-000 and the approved architecture baseline. Business-specific requirements and database/API decisions are not prerequisites for this technical-only slice, but remain mandatory before implementing dependent domain behavior.
 
 ### Slice 2 — Staff Authentication
 
 **ID:** `VS-002`
 **Priority:** P1
+**Status:** Implemented and locally verified; broader RBAC remains in VS-003.
 
 **Goal:** Allow authorized staff to sign in securely.
 
@@ -148,7 +182,9 @@ The slices below are ordered by dependencies. They form the recommended implemen
 * Session retrieval endpoint.
 * Authentication failure handling.
 * Session expiration and logout behavior.
-* Tests for authentication and session security.
+* Initial Administrator provisioning through an interactive CLI; no public registration.
+* Active-account enforcement, CSRF protection, strict frontend-origin CORS, and login rate limiting.
+* Tests for authentication, session rotation, logout invalidation, CSRF, rate limiting, inactive accounts, and absolute session expiry.
 
 **Acceptance criteria**
 
@@ -157,8 +193,13 @@ The slices below are ordered by dependencies. They form the recommended implemen
 * Session cookies use appropriate security settings for the environment.
 * Logout invalidates the session.
 * Passwords and session secrets are never returned to the client or written to logs.
+* Sessions are PostgreSQL-backed, idle for no more than 30 minutes, and absolutely limited to 12 hours.
 
-**Dependencies:** VS-01, VS-03, VS-05.
+**Scope boundary:** This slice provides authentication and the initial Administrator role only. The role-permission matrix, general account/role management, and authorization for business operations remain in VS-003 and are not inferred from the proposed matrix.
+
+**Verification:** Applied the authentication migration to the local PostgreSQL database; verified first-Administrator CLI provisioning, browser login, authenticated session retrieval, logout, and redirect; tested invalid credentials, inactive accounts, CSRF, origin restrictions, rate limiting, session rotation, logout invalidation, deactivation, and absolute expiry. API/web typechecks, lint, tests, and production builds passed. The temporary verification Administrator was removed.
+
+**Dependencies:** VS-001 and VS-05.
 
 ### Slice 3 — Roles and Permissions
 
@@ -212,7 +253,7 @@ The slices below are ordered by dependencies. They form the recommended implemen
 * Invalid package identifiers produce an appropriate not-found response.
 * Layouts work on supported mobile and desktop sizes.
 
-**Dependencies:** VS-01, VS-02, VS-03, VS-04.
+**Dependencies:** VS-001.
 
 ### Slice 5 — Provider and Package Administration
 
@@ -264,7 +305,7 @@ The slices below are ordered by dependencies. They form the recommended implemen
 * The public response does not expose internal records or staff notes.
 * Successful submission provides a clear confirmation.
 
-**Dependencies:** VS-01 through VS-04.
+**Dependencies:** VS-001.
 
 ### Slice 7 — Customer and Inquiry Management
 
@@ -614,6 +655,7 @@ Use the actual requirement IDs from `docs/specification/srs.md` and related spec
 
 Start with a narrow, end-to-end path:
 
+0. **VS-000:** Confirm readiness, record blockers, and authorize only the work that does not depend on unresolved business decisions.
 1. **VS-001:** Verify application health and database connectivity.
 2. **VS-002:** Implement staff authentication.
 3. **VS-003:** Enforce staff permissions.
