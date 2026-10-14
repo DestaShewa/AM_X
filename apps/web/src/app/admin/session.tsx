@@ -142,6 +142,12 @@ export default function AdminSession() {
                 <Link className="font-semibold text-[#176B57] hover:underline" href="/admin/providers">
                   Manage providers
                 </Link>
+                <Link className="font-semibold text-[#176B57] hover:underline" href="/admin/inquiries">
+                  Manage inquiries
+                </Link>
+                <Link className="font-semibold text-[#176B57] hover:underline" href="/admin/follow-ups">
+                  Manage follow-ups
+                </Link>
               </nav>
             )}
             <button

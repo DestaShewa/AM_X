@@ -9,6 +9,7 @@ import { createDatabasePool } from "./database.js";
 import { createManagementRepository } from "./management/repository.js";
 import { createPublicInquiryRepository } from "./inquiries/repository.js";
 import { createPublicPackageRepository } from "./packages/repository.js";
+import { createFollowUpRepository } from "./follow-ups/repository.js";
 
 const config = loadConfig();
 const pool = createDatabasePool(config.databaseUrl);
@@ -25,6 +26,7 @@ const app = createApp({
   pool,
   authRepository: createAuthRepository(pool),
   managementRepository: createManagementRepository(pool),
+  followUpRepository: createFollowUpRepository(pool),
   inquiryRepository: createPublicInquiryRepository(pool),
   packageRepository: createPublicPackageRepository(pool),
   sessionStore,

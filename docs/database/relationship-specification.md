@@ -109,10 +109,11 @@ Define the cardinality, optionality, referential integrity, and deletion behavio
 
 ### 4.8 Follow-Up Relationships
 
-* A follow-up may reference a customer, inquiry, quotation, or booking.
-* Each follow-up must reference at least one valid business record.
+* Each follow-up references exactly one customer or inquiry; an explicit database constraint enforces the one-target rule.
+* Each populated target foreign key references an existing record, and deletion is restricted while follow-ups refer to it.
 * A follow-up may be assigned to a user.
 * Completion should preserve the task outcome and completion timestamp.
+* Quotation and booking target foreign keys are deferred until those tables are implemented by their respective slices.
 
 ### 4.9 User and Role
 
@@ -218,9 +219,9 @@ Define the cardinality, foreign keys, and integrity rules between AMX database e
 | `providers`  | `booking_services`   | One-to-many        | A provider may deliver many booked services                      |
 | `bookings`   | `payments`           | One-to-many        | A booking may have multiple financial transactions               |
 | `payments`   | `payments`           | One-to-many        | An original payment may be referenced by refund records          |
-| `customers`  | `follow_ups`         | One-to-many        | A customer may have multiple follow-ups                          |
-| `inquiries`  | `follow_ups`         | One-to-many        | An inquiry may have multiple follow-ups                          |
-| `bookings`   | `follow_ups`         | One-to-many        | A booking may have multiple follow-ups                           |
+| `customers`  | `follow_ups`         | One-to-many        | A customer may have multiple follow-ups; current target           |
+| `inquiries`  | `follow_ups`         | One-to-many        | An inquiry may have multiple follow-ups; current target            |
+| `bookings`   | `follow_ups`         | One-to-many        | Deferred until booking foreign key is added in a later slice       |
 | `customers`  | `reviews`            | One-to-many        | A customer may submit reviews, subject to eligibility rules      |
 | `bookings`   | `reviews`            | One-to-many        | A booking may have reviews subject to the approved review policy |
 | `customers`  | `complaints`         | One-to-many        | A customer may submit multiple complaints                        |
@@ -265,10 +266,9 @@ A relationship marked one-to-many means each child record references at most one
 
 ### Follow-ups
 
-* A follow-up must reference at least one target: customer, inquiry, or booking.
+* A follow-up must reference exactly one target; the current implementation allows customer or inquiry.
 * Each populated foreign key must reference a valid record.
-* The system must define whether a follow-up can target more than one entity simultaneously.
-* Follow-ups must be assigned to an authorized staff member.
+* A follow-up may be assigned to an active staff user; assignment is optional.
 
 ### Reviews and complaints
 
@@ -295,7 +295,8 @@ A relationship marked one-to-many means each child record references at most one
 ## 5. Decisions Pending
 
 * [ ] Confirm whether users can have multiple roles.
-* [ ] Confirm whether follow-ups can target multiple entities simultaneously.
+* [x] Confirm follow-up target cardinality: exactly one target per follow-up.
+* [x] Confirm initial target types: Customer and Inquiry; quotation and booking targets are deferred to later slices.
 * [ ] Define review eligibility and duplicate-review constraints.
 * [ ] Finalize refund-to-original-payment relationship rules.
 * [ ] Confirm which provider relationships may be null.

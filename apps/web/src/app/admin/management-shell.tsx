@@ -147,6 +147,12 @@ export default function ManagementShell({
             <Link className="text-slate-700 hover:text-[#176B57]" href="/admin/providers">
               Providers
             </Link>
+            <Link className="text-slate-700 hover:text-[#176B57]" href="/admin/inquiries">
+              Inquiries
+            </Link>
+            <Link className="text-slate-700 hover:text-[#176B57]" href="/admin/follow-ups">
+              Follow-ups
+            </Link>
           </nav>
         </div>
       </header>

@@ -68,6 +68,8 @@ The example values illustrate the format only. Public package retrieval is by sl
 
 Package and provider edit payloads accept only documented writable fields. Package status updates accept `DRAFT`, `ACTIVE`, `INACTIVE`, or `ARCHIVED`; provider lifecycle updates accept `ACTIVE`, `SUSPENDED`, or `INACTIVE`; verification updates accept `UNVERIFIED` or `VERIFIED`. All management writes require an active Administrator session and a valid CSRF token. Invalid fields/status values return `400`, missing records return `404`, and duplicate package slugs return `409`. Management responses are not cacheable.
 
+**VS-008 follow-up responses:** `/api/v1/admin/follow-ups` uses the standard `data`/`meta` pagination envelope; details and create/update/status responses use `{ "data": <follow-up> }`. A follow-up contains exactly one `target_type` (`CUSTOMER` or `INQUIRY`) and `target_id`, its target label, description, due timestamp, status, optional active assignee, optional completion time/outcome notes, timestamps, and audit history on detail responses. List filters are `status`, `due=OVERDUE|UPCOMING`, and `search`. Target and active-assignee selection endpoints are Administrator-only. Writes require CSRF; invalid inputs return `400`, nonexistent records `404`, invalid lifecycle transitions or closed-record updates `409`. Responses are not cacheable.
+
 ### 3.2 Create a resource
 
 `POST /api/v1/inquiries`
@@ -217,6 +219,8 @@ Rules:
 * Use deterministic ordering to prevent inconsistent results between pages.
 * Restrict sensitive filters and results according to user permissions.
 * Avoid exposing unnecessary customer or financial data in list responses.
+
+**VS-007 implementation contract:** Staff inquiry routes are mounted under `/api/v1/admin` and currently require an active Administrator session; this preserves the approved VS-005 access boundary while general role permissions remain unresolved. `GET /admin/inquiries` accepts `page`, `page_size`, optional `status`, and optional `search` (case-insensitive match on inquiry reference, customer name, phone, or email). The standard paginated envelope contains list-safe inquiry and customer-contact fields. `GET /admin/inquiries/{inquiry_id}` returns linked customer/request details, staff-only `internal_notes`, and audit history. `PATCH /admin/inquiries/{inquiry_id}` accepts only `status`, `assigned_user_id`, and/or `internal_notes`; writes require CSRF protection, are audited in the same transaction, and reject inactive or missing assignees. Invalid status transitions return `409`. Manual updates cannot set `CONVERTED`; the transactional booking workflow in VS-010 must create the booking before that status is recorded. Inquiry details and internal notes are never available from public inquiry endpoints.
 
 ## 8. Update Semantics
 

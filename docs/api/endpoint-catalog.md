@@ -42,6 +42,8 @@ Public responses must not expose private provider details, internal notes, custo
 
 **VS-006 public inquiry contract:** `POST /inquiries` accepts the documented public trip/contact fields and requires a UUID `Idempotency-Key` header. Full name, phone, preferred contact method, future travel date, positive traveler count and duration, arrival location, accommodation/transport preferences, and privacy consent are required. Email is optional unless selected as the preferred contact method. Optional package IDs must identify an active package. Successful first submission returns `201`; identical retries with the same key return the original safe confirmation with `200`; changed content with that key returns `409`. Invalid data returns field-level `400`, inactive/missing packages return `400`, and the rate limit returns `429`. Responses contain only inquiry ID, reference, status, and timestamp. Limits: five public submissions per IP per 15 minutes.
 
+**VS-007 implementation contract:** Management endpoints are mounted at `/api/v1/admin/inquiries` and require an active Administrator session; PATCH requests also require CSRF validation. List queries support pagination, status filtering, and case-insensitive reference/customer/phone/email search. Detail responses include the linked customer information, private request data, staff-only notes, and audit history. Updates accept status, active staff assignment, and internal notes; permitted transitions match `docs/analysis/State & Status Model.md`, except manual conversion is reserved for VS-010's transactional booking workflow. The current Administrator-only restriction does not finalize the broader staff role matrix.
+
 ## 5. Customer Management
 
 | Method | Endpoint                             | Access      | Purpose                     |
@@ -157,16 +159,19 @@ These endpoints record and manage payment information; they do **not** process o
 
 ## 13. Follow-Ups
 
-| Method | Endpoint                              | Access      | Purpose                                |
-| ------ | ------------------------------------- | ----------- | -------------------------------------- |
-| GET    | `/follow-ups`                         | Admin/Staff | List pending and historical follow-ups |
-| POST   | `/follow-ups`                         | Admin/Staff | Create a follow-up task                |
-| GET    | `/follow-ups/{follow_up_id}`          | Admin/Staff | Retrieve follow-up details             |
-| PATCH  | `/follow-ups/{follow_up_id}`          | Admin/Staff | Update a task                          |
-| POST   | `/follow-ups/{follow_up_id}/complete` | Admin/Staff | Mark a task completed                  |
-| POST   | `/follow-ups/{follow_up_id}/cancel`   | Admin/Staff | Cancel a task                          |
+| Method | Endpoint                                      | Access          | Purpose                                     |
+| ------ | --------------------------------------------- | --------------- | ------------------------------------------- |
+| GET    | `/admin/follow-ups`                           | Administrator   | List, filter, and paginate follow-ups        |
+| GET    | `/admin/follow-ups/targets`                   | Administrator   | Search selectable Customer or Inquiry targets |
+| GET    | `/admin/follow-ups/assignees`                 | Administrator   | List active staff assignment options         |
+| POST   | `/admin/follow-ups`                           | Administrator   | Create a follow-up task                     |
+| GET    | `/admin/follow-ups/{follow_up_id}`            | Administrator   | Retrieve task details and audit history      |
+| PATCH  | `/admin/follow-ups/{follow_up_id}`            | Administrator   | Update an open task                         |
+| POST   | `/admin/follow-ups/{follow_up_id}/start`      | Administrator   | Move a pending task to in progress           |
+| POST   | `/admin/follow-ups/{follow_up_id}/complete`   | Administrator   | Complete an in-progress task                 |
+| POST   | `/admin/follow-ups/{follow_up_id}/cancel`     | Administrator   | Cancel a pending task                        |
 
-Follow-ups must reference a valid target record and support a due date, assigned user, task description, and status.
+List filters include `status`, `due=OVERDUE|UPCOMING`, and `search`, with standard `page` and `page_size` pagination. Exactly one Customer or Inquiry target is required. The transition graph is `PENDING → IN_PROGRESS → COMPLETED`, with `PENDING → CANCELLED`; completed and cancelled tasks are terminal. All writes require an Administrator session and CSRF token. Quotation and Booking targets are deferred until those records are implemented.
 
 ## 14. Reviews and Complaints
 

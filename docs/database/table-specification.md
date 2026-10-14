@@ -294,8 +294,6 @@ Package status is constrained to `DRAFT`, `ACTIVE`, `INACTIVE`, or `ARCHIVED`; o
 | `id`               | UUID        | PK                         |
 | `customer_id`      | UUID        | FK → `customers.id`, NULL  |
 | `inquiry_id`       | UUID        | FK → `inquiries.id`, NULL  |
-| `quotation_id`     | UUID        | FK → `quotations.id`, NULL |
-| `booking_id`       | UUID        | FK → `bookings.id`, NULL   |
 | `assigned_user_id` | UUID        | FK → `users.id`, NULL      |
 | `description`      | TEXT        | NOT NULL                   |
 | `due_at`           | TIMESTAMPTZ | NOT NULL                   |
@@ -305,7 +303,7 @@ Package status is constrained to `DRAFT`, `ACTIVE`, `INACTIVE`, or `ARCHIVED`; o
 | `created_at`       | TIMESTAMPTZ | NOT NULL                   |
 | `updated_at`       | TIMESTAMPTZ | NOT NULL                   |
 
-**Rule:** Each follow-up must reference at least one relevant business record. This cross-column rule requires a database constraint or backend validation.
+**Rules:** Exactly one of `customer_id` and `inquiry_id` is required, enforced by a database constraint. `status` is one of `PENDING`, `IN_PROGRESS`, `COMPLETED`, or `CANCELLED`; `completed_at` is set exactly when status is `COMPLETED`. Customer and inquiry deletion is restricted while referenced; deleting an assigned user clears the assignment. Quotation and booking targets are deferred until their respective slices add explicit foreign keys.
 
 ## 15. `reviews`
 
@@ -741,7 +739,7 @@ Never store passwords, session tokens, or other secrets in audit records. Restri
 
 * [ ] Finalize the adjustment transaction model.
 * [ ] Define booking price snapshot fields.
-* [ ] Finalize follow-up target constraints.
+* [x] Finalize follow-up target constraints for VS-008: exactly one Customer or Inquiry; quotation and booking targets are deferred.
 * [ ] Confirm one role per staff user or multiple roles.
 * [ ] Define refund approval and original-payment references.
 * [ ] Confirm review eligibility and uniqueness rules.
@@ -752,7 +750,7 @@ Never store passwords, session tokens, or other secrets in audit records. Restri
 
 **Status:** Package table contract approved for VS-004 implementation; remaining database baseline proposed — pending validation.
 
-This specification must be reconciled with `erd.md`, `entity-specification.md`, `relationship-specification.md`, `constraint-specification.md`, and `financial-data-design.md` before database migrations are created.
+The broader database baseline remains pending validation against `erd.md`, `entity-specification.md`, `constraint-specification.md`, and `financial-data-design.md`. The VS-008 follow-up table and target decision are implemented; deferred table relationships remain subject to their owning slices.
 
 **Approved by:** Pending
 **Approval date:** Pending

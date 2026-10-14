@@ -18,6 +18,13 @@ import type {
   ProviderUpdate,
   ProviderVerificationStatus,
 } from "./repository.js";
+import {
+  InvalidInquiryAssigneeError as InquiryAssigneeError,
+  InvalidInquiryStatusTransitionError as InquiryStatusTransitionError,
+  type InquiryStatus,
+  type InquiryUpdate,
+  type PublicInquiryRepository,
+} from "../inquiries/repository.js";
 import { InvalidProviderAssignmentError } from "./repository.js";
 
 const DEFAULT_PAGE = 1;
@@ -262,7 +269,8 @@ function packageInput(
   const listFields = ["highlights", "itinerary", "inclusions", "exclusions"];
   for (const field of listFields) {
     if (!partial || Object.hasOwn(rawBody, field)) {
-      const parsed = stringList(rawBody[field] ?? [], field);
+      const value = Object.hasOwn(rawBody, field) ? rawBody[field] : [];
+      const parsed = stringList(value, field);
       if (isInvalid(parsed)) {
         return { error: parsed.error };
       }
@@ -296,14 +304,17 @@ function packageInput(
     result.base_price = price;
   }
   if (!partial || Object.hasOwn(rawBody, "currency")) {
-    const parsed = text(rawBody.currency ?? "ETB", "currency", 3, true);
+    const value = Object.hasOwn(rawBody, "currency") ? rawBody.currency : "ETB";
+    const parsed = text(value, "currency", 3, true);
     if (isInvalid(parsed) || !/^[A-Z]{3}$/.test(parsed.value)) {
       return { error: "currency must be a three-letter uppercase code" };
     }
     result.currency = parsed.value;
   }
   if (!partial || Object.hasOwn(rawBody, "media_references")) {
-    const references = rawBody.media_references ?? [];
+    const references = Object.hasOwn(rawBody, "media_references")
+      ? rawBody.media_references
+      : [];
     if (
       !Array.isArray(references) ||
       references.length > 50 ||
@@ -335,7 +346,9 @@ function packageInput(
     }));
   }
   if (!partial || Object.hasOwn(rawBody, "provider_ids")) {
-    const providerIds = rawBody.provider_ids ?? [];
+    const providerIds = Object.hasOwn(rawBody, "provider_ids")
+      ? rawBody.provider_ids
+      : [];
     if (
       !Array.isArray(providerIds) ||
       providerIds.length > 100 ||
@@ -406,7 +419,8 @@ function providerInput(
   }
   for (const field of ["languages", "services_offered"]) {
     if (!partial || Object.hasOwn(rawBody, field)) {
-      const parsed = stringList(rawBody[field] ?? [], field);
+      const value = Object.hasOwn(rawBody, field) ? rawBody[field] : [];
+      const parsed = stringList(value, field);
       if (isInvalid(parsed)) {
         return { error: parsed.error };
       }
@@ -527,15 +541,30 @@ function sendManagementError(
     );
     return;
   }
+  if (error instanceof InquiryStatusTransitionError) {
+    errorResponse(
+      response,
+      409,
+      "INVALID_STATUS_TRANSITION",
+      "The inquiry cannot move to that status",
+    );
+    return;
+  }
+  if (error instanceof InquiryAssigneeError) {
+    errorResponse(response, 400, "INVALID_ASSIGNEE", "Select an active staff member");
+    return;
+  }
   next(error);
 }
 
 export function createManagementRouter({
   repository,
   authRepository,
+  inquiryRepository,
 }: {
   repository: ManagementRepository;
   authRepository: AuthRepository;
+  inquiryRepository?: PublicInquiryRepository;
 }): Router {
   const router = Router();
   const requireAuthentication = createRequireAuthentication(authRepository);
@@ -543,6 +572,152 @@ export function createManagementRouter({
     requireAuthentication,
     requireAdministrator,
   ];
+
+  const inquiryStatusValues: readonly InquiryStatus[] = [
+    "NEW",
+    "CONTACTED",
+    "PROVIDER_CHECKING",
+    "QUOTATION_SENT",
+    "AWAITING_CONFIRMATION",
+    "CONVERTED",
+    "DECLINED",
+    "CANCELLED",
+    "CLOSED",
+  ];
+
+  function parseInquiryStatus(value: unknown): InquiryStatus | null {
+    return isOneOf(value, inquiryStatusValues) ? value : null;
+  }
+
+  router.get("/inquiries", ...administrators, (request, response, next) => {
+    if (!inquiryRepository || !inquiryRepository.list) {
+      next(new Error("Inquiry repository is not configured"));
+      return;
+    }
+    const pagination = getPagination(request);
+    if (isInvalid(pagination)) {
+      errorResponse(response, 400, "INVALID_PAGINATION", pagination.error);
+      return;
+    }
+    const { page, pageSize } = pagination.value;
+    const status = request.query.status;
+    const parsedStatus = typeof status === "string" ? parseInquiryStatus(status) : undefined;
+    if (
+      status !== undefined &&
+      (typeof status !== "string" || parsedStatus === null)
+    ) {
+      errorResponse(response, 400, "INVALID_STATUS", "Unsupported inquiry status");
+      return;
+    }
+    const rawSearch = request.query.search;
+    if (
+      rawSearch !== undefined &&
+      (typeof rawSearch !== "string" || rawSearch.trim().length > 100)
+    ) {
+      errorResponse(response, 400, "INVALID_SEARCH", "Search must be at most 100 characters");
+      return;
+    }
+    const search = typeof rawSearch === "string" ? rawSearch.trim() : undefined;
+    void inquiryRepository
+      .list(page, pageSize, parsedStatus ?? undefined, search)
+      .then((result) => sendPackagePage(response, result, page, pageSize))
+      .catch((error: unknown) => sendManagementError(error, response, next));
+  });
+
+  router.get("/inquiries/:id", ...administrators, (request, response, next) => {
+    if (!inquiryRepository || !inquiryRepository.get) {
+      next(new Error("Inquiry repository is not configured"));
+      return;
+    }
+    const id = request.params.id;
+    if (typeof id !== "string" || !UUID_PATTERN.test(id)) {
+      errorResponse(response, 404, "NOT_FOUND", "Inquiry not found");
+      return;
+    }
+    void inquiryRepository
+      .get(id)
+      .then((value) => {
+        if (!value) {
+          errorResponse(response, 404, "NOT_FOUND", "Inquiry not found");
+          return;
+        }
+        response.setHeader("Cache-Control", "no-store").json({ data: value });
+      })
+      .catch((error: unknown) => sendManagementError(error, response, next));
+  });
+
+  router.patch("/inquiries/:id", ...administrators, requireCsrf, (request, response, next) => {
+    if (!inquiryRepository || !inquiryRepository.update) {
+      next(new Error("Inquiry repository is not configured"));
+      return;
+    }
+    const id = request.params.id;
+    if (typeof id !== "string" || !UUID_PATTERN.test(id)) {
+      errorResponse(response, 404, "NOT_FOUND", "Inquiry not found");
+      return;
+    }
+    if (!isRecord(request.body)) {
+      errorResponse(response, 400, "INVALID_REQUEST", "Request body must be a JSON object");
+      return;
+    }
+    const allowedFields = ["status", "assigned_user_id", "internal_notes"];
+    const unsupportedField = Object.keys(request.body).find(
+      (field) => !allowedFields.includes(field),
+    );
+    if (unsupportedField) {
+      errorResponse(
+        response,
+        400,
+        "INVALID_REQUEST",
+        `Unsupported inquiry field: ${unsupportedField}`,
+      );
+      return;
+    }
+    const updates: InquiryUpdate = {};
+    for (const field of allowedFields) {
+      if (!Object.hasOwn(request.body, field)) continue;
+      const value = request.body[field];
+      if (field === "status") {
+        if (value === null || !isOneOf(value, inquiryStatusValues)) {
+          errorResponse(response, 400, "INVALID_STATUS", "Unsupported inquiry status");
+          return;
+        }
+        updates.status = value;
+      } else if (field === "assigned_user_id") {
+        if (value !== null && (typeof value !== "string" || !UUID_PATTERN.test(value))) {
+          errorResponse(response, 400, "INVALID_REQUEST", "assigned_user_id must be null or a UUID");
+          return;
+        }
+        updates.assigned_user_id = value === null ? null : value;
+      } else if (field === "internal_notes") {
+        if (
+          value !== null &&
+          (typeof value !== "string" || value.trim().length > 10_000)
+        ) {
+          errorResponse(response, 400, "INVALID_REQUEST", "internal_notes must be null or at most 10000 characters");
+          return;
+        }
+        updates.internal_notes =
+          typeof value === "string" ? value.trim() || null : null;
+      }
+    }
+    if (Object.keys(updates).length === 0) {
+      errorResponse(response, 400, "INVALID_REQUEST", "At least one supported field must be provided");
+      return;
+    }
+    const actorId = authenticatedActorId(request, response);
+    if (!actorId) return;
+    void inquiryRepository
+      .update(id, updates, actorId)
+      .then((value) => {
+        if (!value) {
+          errorResponse(response, 404, "NOT_FOUND", "Inquiry not found");
+          return;
+        }
+        response.setHeader("Cache-Control", "no-store").json({ data: value });
+      })
+      .catch((error: unknown) => sendManagementError(error, response, next));
+  });
 
   router.get("/packages", ...administrators, (request, response, next) => {
     const pagination = getPagination(request);

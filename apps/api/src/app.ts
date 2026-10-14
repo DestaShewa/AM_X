@@ -11,6 +11,8 @@ import {
   createPublicPackageRouter,
 } from "./packages/routes.js";
 import type { PublicPackageRepository } from "./packages/repository.js";
+import { createFollowUpRouter } from "./follow-ups/routes.js";
+import type { FollowUpRepository } from "./follow-ups/repository.js";
 import { createHealthRouter, type DatabaseHealthCheck } from "./routes/health.js";
 
 type RequestLogger = Pick<Console, "info" | "error">;
@@ -45,6 +47,7 @@ export function createApp({
   packageRepository,
   inquiryRepository,
   managementRepository,
+  followUpRepository,
   sessionStore,
   sessionSecret,
   frontendOrigin,
@@ -56,6 +59,7 @@ export function createApp({
   packageRepository: PublicPackageRepository;
   inquiryRepository?: PublicInquiryRepository;
   managementRepository?: ManagementRepository;
+  followUpRepository?: FollowUpRepository;
   sessionStore: Store;
   sessionSecret: string;
   frontendOrigin: string;
@@ -108,7 +112,17 @@ export function createApp({
   if (managementRepository) {
     app.use(
       "/api/v1/admin",
-      createManagementRouter({ repository: managementRepository, authRepository }),
+      createManagementRouter({
+        repository: managementRepository,
+        authRepository,
+        inquiryRepository,
+      }),
+    );
+  }
+  if (followUpRepository) {
+    app.use(
+      "/api/v1/admin/follow-ups",
+      createFollowUpRouter({ repository: followUpRepository, authRepository }),
     );
   }
   app.use("/api/v1/packages", createPublicPackageRouter(packageRepository));

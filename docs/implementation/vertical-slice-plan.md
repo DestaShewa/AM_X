@@ -298,7 +298,7 @@ The slices below are ordered by dependencies. They form the recommended implemen
 
 **ID:** `VS-006`
 **Priority:** P1
-**Status:** Implemented; verification in progress.
+**Status:** Implemented and locally verified (2026-10-14).
 
 **Goal:** Allow visitors to request a custom experience.
 
@@ -326,12 +326,13 @@ The slices below are ordered by dependencies. They form the recommended implemen
 
 **VS-006 implementation decision (2026-10-11):** Full name and phone are required; email is optional except when email is the selected contact method. Preferred contact method and consent are required. Travel dates must be future dates in `Africa/Addis_Ababa`; traveler count and duration must be positive. Each unique submission creates a new customer, without matching by shared phone. The client supplies a UUID `Idempotency-Key`: identical retries replay the original inquiry and changed-payload reuse returns `409`. Consent is timestamped with notice version `2026-10-11-v1`. An active package may be preselected. To limit abuse, public submissions are limited to five requests per IP per fifteen minutes. This rate limit is operational protection, not a business entitlement.
 
-**Verification:** API tests, PostgreSQL migration and repository transaction/idempotency checks, typechecks, lint, production build, and browser form-submission workflow remain to be recorded before marking this slice complete.
+**Verification:** API tests pass for validation, package availability, safe confirmation fields, idempotent replay, changed-payload conflict, and rate limiting. API/web typechecks, API/web production builds, web lint, and PostgreSQL migration status pass; the required VS-006 migration is applied. A live browser submission flow completed against the local API/database, and its temporary customer/inquiry/audit data was removed.
 
 ### Slice 7 — Customer and Inquiry Management
 
 **ID:** `VS-007`
 **Priority:** P1
+**Status:** Implemented and locally verified (2026-10-14).
 
 **Goal:** Let staff manage inquiries and customer records.
 
@@ -354,31 +355,40 @@ The slices below are ordered by dependencies. They form the recommended implemen
 
 **Dependencies:** VS-003, VS-006.
 
+**VS-007 implementation decision:** Use the inquiry transition matrix in `docs/analysis/State & Status Model.md`. Management routes are mounted at `/api/v1/admin/inquiries` and remain Administrator-only under the existing VS-005 authorization decision; this does not finalize the broader staff role matrix. Administrators can search and filter inquiries, review linked customer details and history, update an allowed status, and maintain private internal notes. The management API also supports assigning an active staff user. `CONVERTED` is excluded from manual updates and is reserved for VS-010's transactional booking creation. Changes and transitions are audited transactionally; public inquiry endpoints expose no management details or notes. Follow-up scheduling remains VS-008.
+
+**Verification:** API tests pass for authentication/authorization, CSRF, pagination and search filters, privacy boundaries, status transition rejection, notes updates, and assignee validation. A database-backed check passed for inquiry create/list/detail/update, audit history, assignment, and transition rejection. API/web typechecks, API/web production builds, web lint, and migration status pass. A live browser flow verified Administrator access, inquiry list/detail, status and notes update, and history display; all temporary verification records were removed.
+
 ### Slice 8 — Follow-up Management
 
 **ID:** `VS-008`
 **Priority:** P2
+**Status:** Implemented and locally verified
 
-**Goal:** Help staff track pending customer and booking actions.
+**Goal:** Help staff track pending customer and inquiry actions.
 
 **Includes**
 
-* Create, view, update, and complete follow-ups.
+* Create, view, and update follow-ups, with explicit start, complete, and cancel actions.
 * Due dates and responsible staff.
 * Pending, in-progress, completed, and cancelled states.
-* Links to the approved target records.
+* Exactly one Customer or Inquiry target per follow-up.
 * Due and overdue filtering.
 
 **Acceptance criteria**
 
-* Staff can create and track follow-ups.
+* Administrators can create and track follow-ups.
 * Invalid or missing target relationships are rejected.
-* Only authorized staff can view or modify follow-ups.
+* Only authenticated Administrators can view or modify follow-ups.
 * Follow-up status and ownership are preserved accurately.
 
 **Dependencies:** VS-007.
 
-**Required decision:** Confirm the database relationship strategy for linking a follow-up to one or more supported record types.
+**Decision recorded:** The project owner selected exactly one target per follow-up, enforced with explicit foreign keys. VS-008 implements Customer and Inquiry targets; Quotation and Booking foreign keys will be added with their respective later slices. This is a slice-specific decision and does not settle the broader staff permission matrix.
+
+**Implementation:** A database migration creates explicit Customer/Inquiry and optional active-user foreign keys, the exactly-one-target, status, and completion constraints, and due/assignment indexes. Administrator API endpoints provide paginated status/search/due filtering, Customer/Inquiry and active-assignee lookup, creation, detail/history, updates, and lifecycle actions. Audit writes and lifecycle updates are transactional. The Administrator UI supports target selection, assignment, editing, due/overdue filters, lifecycle actions, and history.
+
+**Verification:** The API test suite passes, including Administrator/CSRF enforcement, validation, create, and completion behavior. Migration `202610140005_follow_ups` is applied and reported by migration status. API/web typechecks, lint, and production builds pass. Database-backed lifecycle verification confirms target lookup, create/list/detail/update, transactional history, start/completion, outcome preservation, and invalid target/status constraints.
 
 ### Slice 9 — Quotation Creation and Revisions
 

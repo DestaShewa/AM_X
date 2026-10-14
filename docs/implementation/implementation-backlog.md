@@ -94,7 +94,8 @@ Every implementation task must reference the relevant requirement IDs, define ac
 ### Epic 5 — Customers and Inquiries
 
 **Priority: P1**
-**VS-006 status:** Implemented; verification in progress.
+**VS-006 status:** Implemented and locally verified (2026-10-14).
+**VS-007 status:** Implemented and locally verified (2026-10-14).
 
 * [x] Build the custom-trip inquiry form and package-prefilled request action.
 * [x] Validate traveler details, future dates, group size, duration, budget, interests, contact information, and consent.
@@ -102,13 +103,16 @@ Every implementation task must reference the relevant requirement IDs, define ac
 * [x] Prevent duplicate creation on idempotent retries and reject key reuse with changed content.
 * [x] Record privacy consent and a versioned notice.
 * [x] Add public response confirmation, loading/error states, and submission rate limiting.
-* [ ] Build the inquiry list, search, filters, and detail view.
-* [ ] Implement inquiry status transitions.
-* [ ] Add staff notes and follow-up scheduling.
+* [x] Build the inquiry list, search, filters, and detail view.
+* [x] Implement the approved inquiry status transitions.
+* [x] Add internal staff notes and auditable inquiry history.
 * [x] Audit public inquiry creation without copying submitted PII into the audit summary.
-* [ ] Verify the public submission workflow end to end and complete the remaining VS-006 checks.
+* [x] Verify public inquiry validation, idempotency, rate limiting, and safe confirmation responses.
+* [x] Verify Administrator-only inquiry management, CSRF protection, status filtering, search, detail privacy, notes, and transition rejection.
 
-**Acceptance criteria:** A visitor can submit an inquiry, authorized staff can review and update it, and the inquiry history is preserved.
+**Acceptance criteria:** A visitor can submit an inquiry, authorized staff can review and update it, and the inquiry history is preserved. Follow-up scheduling remains in VS-008.
+
+**VS-006/VS-007 verification:** API regression tests (28 tests), API/web typechecks, API and web production builds, web lint, and local PostgreSQL migration status passed. A live browser flow submitted a public inquiry and exercised Administrator login, inquiry list/detail, status update, private notes, and history. Database-backed repository checks covered inquiry create/list/detail/update, audit history, assignment validation, and invalid transition rejection. All temporary test inquiries, customers, account, role, and session artifacts were cleaned up.
 
 ### Epic 6 — Providers and Packages Administration
 
@@ -181,9 +185,9 @@ Service-level package assignments, provider self-service, public provider profil
 
 **Priority: P2**
 
-* [ ] Implement follow-up creation and status management.
-* [ ] Link follow-ups to the approved target records.
-* [ ] Display due and overdue follow-ups.
+* [x] Implement follow-up creation and status management (VS-008).
+* [x] Link follow-ups to exactly one Customer or Inquiry target (VS-008); quotation and booking targets remain deferred.
+* [x] Display due and overdue follow-ups (VS-008).
 * [ ] Implement review submission and moderation.
 * [ ] Implement complaint recording, investigation, and resolution.
 * [ ] Enforce access and eligibility rules.

@@ -8,6 +8,9 @@ import { createApp } from "../src/app.js";
 import type { AuthRepository } from "../src/auth/repository.js";
 import {
   IdempotencyPayloadConflictError,
+  isManualInquiryStatusTransitionAllowed,
+  isInquiryStatusTransitionAllowed,
+  type InquiryStatus,
   type PublicInquiry,
   type PublicInquiryInput,
   type PublicInquiryRepository,
@@ -43,6 +46,49 @@ const VALID_INPUT = {
   special_requests: null,
   privacy_consent: true,
 };
+
+test("inquiry transitions match the approved state model", () => {
+  const statuses: readonly InquiryStatus[] = [
+    "NEW",
+    "CONTACTED",
+    "PROVIDER_CHECKING",
+    "QUOTATION_SENT",
+    "AWAITING_CONFIRMATION",
+    "CONVERTED",
+    "DECLINED",
+    "CANCELLED",
+    "CLOSED",
+  ];
+  const transitions: Record<InquiryStatus, readonly InquiryStatus[]> = {
+    NEW: ["CONTACTED", "CANCELLED"],
+    CONTACTED: ["PROVIDER_CHECKING", "CANCELLED", "CLOSED"],
+    PROVIDER_CHECKING: ["QUOTATION_SENT", "CONTACTED", "CANCELLED"],
+    QUOTATION_SENT: ["AWAITING_CONFIRMATION", "CANCELLED"],
+    AWAITING_CONFIRMATION: ["CONVERTED", "DECLINED", "CANCELLED"],
+    CONVERTED: ["CLOSED"],
+    DECLINED: ["CLOSED"],
+    CANCELLED: ["CLOSED"],
+    CLOSED: [],
+  };
+  for (const current of statuses) {
+    for (const next of statuses) {
+      assert.equal(
+        isInquiryStatusTransitionAllowed(current, next),
+        transitions[current].some((status) => status === next),
+        `${current} -> ${next}`,
+      );
+    }
+  }
+  assert.equal(
+    isManualInquiryStatusTransitionAllowed("AWAITING_CONFIRMATION", "CONVERTED"),
+    false,
+    "conversion requires the transactional booking workflow",
+  );
+  assert.equal(
+    isManualInquiryStatusTransitionAllowed("AWAITING_CONFIRMATION", "DECLINED"),
+    true,
+  );
+});
 const AUTH_REPOSITORY: AuthRepository = {
   findByEmail: async () => null,
   findActiveById: async () => null,
